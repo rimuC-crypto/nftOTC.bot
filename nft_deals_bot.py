@@ -1743,7 +1743,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 await q.edit_message_text(tr(ctx,"lang_pick"), reply_markup=lang_kb(), parse_mode="Markdown")
             except Exception:
                 pass
-        return LANG_ST
+        return MENU_ST
 
     if d == "support":
         ctx.user_data["await"] = "support"
@@ -2536,7 +2536,7 @@ def main():
             CommandHandler("getbannerid", getbannerid_cmd),
         ],
         states={
-            LANG_ST:      all_cb,
+            LANG_ST:      all_cb + all_msg,
             MENU_ST:      all_cb + all_msg,
             REQ_CUR_ST:   all_cb,
             REQ_IN_ST:    all_msg + all_cb,
