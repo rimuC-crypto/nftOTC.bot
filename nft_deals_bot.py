@@ -935,7 +935,6 @@ def menu_kb(ctx):
          InlineKeyboardButton(tr(ctx,"btn_about"),   callback_data="about")],
         [InlineKeyboardButton(tr(ctx,"btn_faq"),           callback_data="faq"),
          InlineKeyboardButton(tr(ctx,"btn_platform_stats"), callback_data="platform_stats")],
-        [InlineKeyboardButton("🌐 Открыть маркет", web_app=WebAppInfo(url=MINI_APP_URL))],
     ])
 
 def back_kb(ctx, cb="menu"):
@@ -1184,24 +1183,11 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(T["en"]["buyer_welcome"], reply_markup=lang_kb(), parse_mode="Markdown")
         return LANG_ST
 
-    # ── Welcome screen ────────────────────────────
+    # ── Welcome screen — только выбор языка ────────
     ctx.user_data["flow"] = "seller"
 
-    WELCOME_PHOTO_ID = "AgACAgIAAxkBAAN5aamCWMzuOFUH5g8R4PAXom2OtwEAAiAWaxukIlBJZrKdZbXWiEoBAAMCAAN3AAM6BA"
-    if WELCOME_PHOTO_ID:
-        try:
-            await update.message.reply_photo(
-                photo=WELCOME_PHOTO_ID,
-                caption=T["ru"]["welcome"],
-                reply_markup=lang_kb(),
-                parse_mode="Markdown"
-            )
-            return LANG_ST
-        except Exception:
-            pass
-
     await update.message.reply_text(
-        T["ru"]["welcome"],
+        "🌐 *Выберите язык / Choose language:*",
         reply_markup=lang_kb(),
         parse_mode="Markdown"
     )
@@ -1291,17 +1277,33 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 pass
             return BUYER_ST
 
-        # После фото нельзя edit_message_text — удаляем и шлём меню новым сообщением
+        # Удаляем сообщение с выбором языка
         try:
             await q.delete_message()
         except Exception:
             pass
-        await ctx.bot.send_message(
-            chat_id=update.effective_user.id,
-            text=menu_text(ctx, name, u),
-            reply_markup=menu_kb(ctx),
-            parse_mode="Markdown"
-        )
+        # Отправляем фото с welcome-текстом и кнопками меню
+        WELCOME_PHOTO_ID = "AgACAgIAAxkBAAN5aamCWMzuOFUH5g8R4PAXom2OtwEAAiAWaxukIlBJZrKdZbXWiEoBAAMCAAN3AAM6BA"
+        sent = False
+        if WELCOME_PHOTO_ID:
+            try:
+                await ctx.bot.send_photo(
+                    chat_id=update.effective_user.id,
+                    photo=WELCOME_PHOTO_ID,
+                    caption=tr(ctx,"welcome"),
+                    reply_markup=menu_kb(ctx),
+                    parse_mode="Markdown"
+                )
+                sent = True
+            except Exception:
+                pass
+        if not sent:
+            await ctx.bot.send_message(
+                chat_id=update.effective_user.id,
+                text=menu_text(ctx, name, u),
+                reply_markup=menu_kb(ctx),
+                parse_mode="Markdown"
+            )
         return MENU_ST
 
     # ── Menu ──────────────────────────────────────
