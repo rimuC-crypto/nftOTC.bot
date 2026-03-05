@@ -15,17 +15,19 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 SUPPORT_USERNAME = "otcmarketHelper"
 
 # ── States ──────────────────────────────────────────
-LANG_ST    = 1
-MENU_ST    = 2
-REQ_CUR_ST = 3
-REQ_IN_ST  = 4
-DEAL_CUR_ST= 5
-DEAL_AMT_ST= 6
-DEAL_GIFT_ST=7
-BUYER_ST   = 8
-SUPPORT_ST = 9
-ADMIN_ST   = 10
-REVIEW_ST  = 11
+LANG_ST      = 1
+MENU_ST      = 2
+REQ_CUR_ST   = 3
+REQ_IN_ST    = 4
+DEAL_CUR_ST  = 5
+DEAL_AMT_ST  = 6
+DEAL_GIFT_ST = 7
+BUYER_ST     = 8
+SUPPORT_ST   = 9
+ADMIN_ST     = 10
+REVIEW_ST    = 11
+DEPOSIT_ST   = 12
+WITHDRAW_ST  = 13
 
 # ── Storage ─────────────────────────────────────────
 users         = {}
@@ -68,30 +70,35 @@ T = {}
 
 T["ru"] = {
     "welcome": (
-        "💎 *Fides Deal Market*\n\n"
-        "Добро пожаловать в *Fides Deal* —\n"
-        "безопасные сделки с гарантией!\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🛡️ *Защита от мошенников*\n"
-        "💰 *Автоматическое удержание средств*\n"
-        "📊 *Прозрачная статистика*\n"
-        "💬 *Поддержка 24/7*\n"
-        "📜 *История сделок*\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "👇 Выберите язык интерфейса:"
+        "╔══════════════════════╗\n"
+        "       💎  *OTC NFT MARKET*  💎\n"
+        "╚══════════════════════╝\n\n"
+        "🏆 *Добро пожаловать!*\n"
+        "Надёжная площадка для торговли\n"
+        "NFT‑подарками в Telegram\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        "🛡️  *Защита от мошенников*\n"
+        "💰  *Автоматическое удержание средств*\n"
+        "📊  *Прозрачная статистика*\n"
+        "💬  *Поддержка 24 / 7*\n"
+        "📜  *История всех сделок*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        "👇 *Выберите язык интерфейса:*"
     ),
     "blocked": "⛔ *Аккаунт заблокирован*\n\nОбратитесь в поддержку: @{support}",
     "menu": (
-        "🏠 *OTC NFT Market*\n\n"
+        "╔══════════════════════╗\n"
+        "      🏠  *OTC NFT MARKET*\n"
+        "╚══════════════════════╝\n\n"
         "👤 *{name}*\n"
-        "⭐ Рейтинг: *{rating}* / 5.0  |  📊 Сделок: *{dc}*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "⭐ Рейтинг: *{rating}* / 5.0  │  📊 Сделок: *{dc}*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Выберите действие:"
     ),
     "btn_create":  "➕ Создать сделку",
     "btn_deals":   "📂 Мои сделки",
     "btn_refs":    "👥 Рефералы",
-    "btn_req":     "💳 Реквизиты",
+    "btn_req":     "💳 Реквизиты и кошелёк",
     "btn_lang":    "🌐 Язык",
     "btn_support": "💬 Поддержка",
     "btn_about":   "ℹ️ О маркете",
@@ -102,35 +109,112 @@ T["ru"] = {
         "куда покупатель будет переводить деньги.\n\n"
         "👇 Перейдите в раздел *Реквизиты*"
     ),
-    "req_menu":  "💳 *Реквизиты*\n\nВыберите валюту для привязки.\n✅ — уже привязано:",
+    "req_menu": (
+        "╔══════════════════════╗\n"
+        "  💳  *РЕКВИЗИТЫ И КОШЕЛЁК*\n"
+        "╚══════════════════════╝\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "Выберите действие:"
+    ),
+    "btn_req_pay":      "💳 Привязать реквизиты",
+    "btn_req_deposit":  "📥 Пополнить баланс",
+    "btn_req_withdraw": "📤 Вывести средства",
+    "btn_req_balance":  "💰 Мой баланс",
+    "req_currencies_menu": (
+        "💳 *Привязка реквизитов*\n\n"
+        "Выберите валюту для привязки.\n"
+        "✅ — уже привязано:"
+    ),
     "req_enter": (
         "✏️ *Привязка реквизитов — {cur}*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Введите ваши платёжные данные:\n\n"
-        "• Карты: номер карты\n"
-        "• USDT: адрес TRC20 / ERC20\n"
-        "• Stars: ваш username в Telegram\n\n"
+        "  • Карты: номер карты\n"
+        "  • USDT: адрес TRC20 / ERC20\n"
+        "  • Stars: ваш username в Telegram\n\n"
         "_(Эти данные увидит покупатель при оплате)_"
     ),
     "req_saved": "✅ *Реквизиты сохранены!*\n\nВалюта: *{cur}*\n\nТеперь можно создавать сделки.",
+    "deposit_menu": (
+        "╔══════════════════════╗\n"
+        "   📥  *ПОПОЛНЕНИЕ БАЛАНСА*\n"
+        "╚══════════════════════╝\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "Выберите валюту пополнения:"
+    ),
+    "deposit_enter": (
+        "📥 *Пополнение — {cur}*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "Введите сумму пополнения в *{cur}*:\n\n"
+        "_(Минимум: {min} {cur})_"
+    ),
+    "deposit_pending": (
+        "⏳ *Заявка на пополнение создана!*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "💰 Сумма: *{amount} {cur}*\n"
+        "🆔 Заявка: `{req_id}`\n\n"
+        "Свяжитесь с менеджером: @{support}\n"
+        "Укажите ID заявки при обращении."
+    ),
+    "withdraw_menu": (
+        "╔══════════════════════╗\n"
+        "   📤  *ВЫВОД СРЕДСТВ*\n"
+        "╚══════════════════════╝\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "Выберите валюту для вывода:"
+    ),
+    "withdraw_enter": (
+        "📤 *Вывод средств — {cur}*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "💰 Доступно: *{available} {cur}*\n\n"
+        "Введите сумму вывода:\n"
+        "_(Минимум: {min} {cur})_"
+    ),
+    "withdraw_no_req": (
+        "⚠️ *Реквизиты не привязаны*\n\n"
+        "Сначала привяжите реквизиты для валюты *{cur}*."
+    ),
+    "withdraw_no_balance": "❌ *Недостаточно средств*\n\nДоступно: *{available} {cur}*",
+    "withdraw_pending": (
+        "✅ *Заявка на вывод создана!*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "💰 Сумма: *{amount} {cur}*\n"
+        "📋 На реквизиты: `{req}`\n"
+        "🆔 Заявка: `{req_id}`\n\n"
+        "⏱ Обработка: до 30 минут.\n"
+        "Вопросы: @{support}"
+    ),
+    "balance_view": (
+        "╔══════════════════════╗\n"
+        "      💰  *МОЙ БАЛАНС*\n"
+        "╚══════════════════════╝\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "{balance_lines}"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        "📅 На платформе с: *{joined}*\n"
+        "⭐ Рейтинг: *{rating}* / 5.0\n"
+        "📊 Завершено сделок: *{dc}*"
+    ),
+    "balance_empty": "  • Баланс пуст\n",
     "deal_cur":    "💱 *Создание сделки — Шаг 1 / 3*\n\nВыберите валюту расчёта:",
     "deal_amount": "💰 *Создание сделки — Шаг 2 / 3*\n\nВведите сумму в *{cur}*:\n\n_(Именно столько заплатит покупатель)_",
     "deal_gift":   "🎁 *Создание сделки — Шаг 3 / 3*\n\nВведите название NFT подарка:\n\n_(Например: «Плюшевый мишка», «Торт», «Сердце»)_",
     "bad_amount":  "❌ Неверный формат. Введите число, например: `1500` или `25.5`",
     "min_amount":  "❌ Минимальная сумма: *{min} {cur}*\n\nВведите большую сумму:",
     "deal_created": (
-        "✅ *Сделка успешно создана!*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "    ✅  *СДЕЛКА СОЗДАНА!*\n"
+        "╚══════════════════════╝\n\n"
         "🎁 NFT подарок: *{gift}*\n"
         "💰 Сумма: *{amount} {cur}*\n"
         "💸 Комиссия маркета: *3%*\n"
         "🆔 ID сделки: `{id}`\n"
         "📅 Создана: {date}\n"
-        "📌 Статус: 🟡 Ожидает покупателя\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "📌 Статус: 🟡 Ожидает покупателя\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "🔗 *Ссылка для покупателя:*\n"
         "`https://t.me/{bot}?start=deal_{id}`\n\n"
-        "📤 Отправьте эту ссылку покупателю.\n"
-        "Как только он оплатит — вы получите уведомление."
+        "📤 Отправьте эту ссылку покупателю."
     ),
     "no_deals":   "📭 *Нет активных сделок*\n\nСоздайте первую сделку!",
     "deals_list": "📂 *Ваши сделки:*\n\n{list}",
@@ -139,60 +223,57 @@ T["ru"] = {
         "🗑 *Отменить сделку?*\n\n"
         "🆔 `{id}`\n"
         "🎁 {gift}  |  💰 {amount} {cur}\n\n"
-        "⚠️ Отменить можно только если\n"
-        "покупатель ещё не оплатил."
+        "⚠️ Отменить можно только если покупатель ещё не оплатил."
     ),
     "deal_cancelled":   "✅ Сделка `{id}` отменена.",
     "deal_cancel_fail": "❌ Нельзя отменить — покупатель уже оплатил.\nОбратитесь в поддержку: @{support}",
     "refs": (
-        "👥 *Реферальная программа*\n\n"
-        "Приглашайте друзей и зарабатывайте *0.5 USDT*\n"
-        "за каждого активного реферала!\n\n"
+        "╔══════════════════════╗\n"
+        "  👥  *РЕФЕРАЛЬНАЯ ПРОГРАММА*\n"
+        "╚══════════════════════╝\n\n"
+        "Приглашайте друзей и зарабатывайте\n"
+        "*0.5 USDT* за каждого реферала!\n\n"
         "🔗 *Ваша реферальная ссылка:*\n"
         "`https://t.me/{bot}?start=ref_{uid}`\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "👤 Приглашено: *{count}* чел.\n"
         "💎 Заработано: *{bonus}* USDT\n"
-        "━━━━━━━━━━━━━━━━━━━━━━"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰"
     ),
     "support": (
-        "💬 *Служба поддержки OTC NFT Market*\n\n"
-        "Мы работаем *24/7* и готовы помочь\n"
-        "с любым вопросом!\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "   💬  *СЛУЖБА ПОДДЕРЖКИ*\n"
+        "╚══════════════════════╝\n\n"
+        "Мы работаем *24/7* и готовы помочь!\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "📩 Менеджер: @{support}\n"
-        "⏱ Время ответа: до 15 минут\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "⏱ Ответ: до 15 минут\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
         "Или напишите сообщение прямо здесь:"
     ),
     "support_sent": "✅ *Сообщение отправлено!*\n\nМенеджер @{support} ответит в течение 15 минут. 🙏",
     "about": (
-        "ℹ️ *OTC NFT Market — Официальная площадка*\n\n"
-        "Мы создали самый надёжный способ покупать\n"
-        "и продавать NFT‑подарки в Telegram.\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🔐 *Безопасность сделок:*\n\n"
-        "• *Эскроу‑защита* — деньги покупателя\n"
-        "  блокируются до момента передачи NFT.\n"
-        "  Продавец не получит средства раньше\n"
-        "  времени, покупатель не потеряет деньги.\n\n"
-        "• *Верификация* — перед первой сделкой\n"
-        "  каждый пользователь проходит проверку.\n\n"
-        "• *Рейтинговая система* — смотрите\n"
-        "  историю и оценки любого участника.\n\n"
-        "• *Арбитраж* — спорные ситуации\n"
-        "  решаются модераторами за 30 минут.\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "    ℹ️  *OTC NFT MARKET*\n"
+        "╚══════════════════════╝\n\n"
+        "Надёжный способ покупать и продавать\n"
+        "NFT‑подарки в Telegram.\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "🔐 *Безопасность:*\n\n"
+        "  🔒 Эскроу‑защита каждой сделки\n"
+        "  🛡️ Верификация участников\n"
+        "  ⭐ Рейтинговая система\n"
+        "  ⚖️ Арбитраж за 30 минут\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "📊 *Как проходит сделка:*\n\n"
-        "1️⃣ Продавец создаёт сделку\n"
-        "2️⃣ Делится ссылкой с покупателем\n"
-        "3️⃣ Покупатель оплачивает и подтверждает\n"
-        "4️⃣ Продавец передаёт NFT подарок\n"
-        "5️⃣ Покупатель подтверждает получение\n"
-        "6️⃣ Сделка завершена ✅\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "💬 Поддержка: @{support}\n"
-        "📊 Версия: 3.0"
+        "  1️⃣ Продавец создаёт сделку\n"
+        "  2️⃣ Делится ссылкой с покупателем\n"
+        "  3️⃣ Покупатель оплачивает\n"
+        "  4️⃣ Продавец передаёт NFT подарок\n"
+        "  5️⃣ Покупатель подтверждает получение\n"
+        "  6️⃣ ✅ Сделка завершена!\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "💬 Поддержка: @{support} | 📌 Версия: 4.0"
     ),
     "lang_pick": "🌐 *Выберите язык интерфейса:*",
     "back":      "⬅️ Назад",
@@ -202,10 +283,16 @@ T["ru"] = {
     "s_done":      "✅ Завершена",
     "s_cancelled": "❌ Отменена",
     "buyer_welcome": (
-        "👋 *Добро пожаловать в OTC NFT Market!*\n\n"
-        "Вас пригласили к участию в защищённой сделке.\n\n"
-        "🔐 Все транзакции проходят через систему\n"
-        "эскроу‑защиты — ваши средства в безопасности.\n\n"
+        "╔══════════════════════╗\n"
+        "    🤝  *OTC NFT MARKET*\n"
+        "╚══════════════════════╝\n\n"
+        "👋 *Добро пожаловать!*\n"
+        "Вас пригласили к защищённой сделке.\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "🔐 Все транзакции защищены\n"
+        "системой эскроу — ваши средства\n"
+        "в полной безопасности.\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
         "👇 Выберите язык:"
     ),
     "buyer_viewing": (
@@ -215,102 +302,102 @@ T["ru"] = {
         "⏳ Ожидайте оплаты..."
     ),
     "buyer_deal": (
-        "🤝 *Предложение о сделке*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "  🤝  *ПРЕДЛОЖЕНИЕ О СДЕЛКЕ*\n"
+        "╚══════════════════════╝\n\n"
         "🎁 NFT подарок: *{gift}*\n"
-        "💰 Сумма к оплате: *{amount} {cur}*\n"
+        "💰 Сумма к оплате: *{amount} {cur}*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "👤 Продавец: *{seller}*\n"
-        "⭐ Рейтинг продавца: *{rating}* / 5.0\n"
-        "📊 Завершённых сделок: *{dc}*\n"
-        "🆔 ID сделки: `{id}`\n"
+        "⭐ Рейтинг: *{rating}* / 5.0\n"
+        "📊 Завершено сделок: *{dc}*\n"
+        "🆔 ID: `{id}`\n"
         "📌 Статус: 🟡 Ожидает оплаты\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
         "🔐 *Гарантия безопасности:*\n"
-        "После вашей оплаты продавец обязан передать\n"
-        "NFT подарок. Вы подтверждаете получение.\n"
+        "После оплаты продавец обязан передать NFT.\n"
         "При проблемах — откройте спор: @{support}"
     ),
     "btn_pay":         "💳 Перейти к оплате",
     "btn_cancel_deal": "❌ Отменить",
     "btn_dispute":     "⚖️ Открыть спор",
     "buyer_pay_info": (
-        "💳 *Реквизиты для оплаты*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "  💳  *РЕКВИЗИТЫ ДЛЯ ОПЛАТЫ*\n"
+        "╚══════════════════════╝\n\n"
         "🎁 Подарок: *{gift}*\n"
-        "💰 Сумма к переводу: *{amount} {cur}*\n"
+        "💰 Сумма к переводу: *{amount} {cur}*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "📋 Реквизиты продавца:\n"
         "`{req}`\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
         "⚠️ *Важно:*\n"
-        "• Переведите *точную* сумму — {amount} {cur}\n"
-        "• Сохраните скриншот / чек перевода\n"
-        "• После перевода нажмите кнопку ниже\n\n"
+        "  • Переведите *точную* сумму\n"
+        "  • Сохраните чек перевода\n"
+        "  • После перевода нажмите кнопку ниже\n\n"
         "👇 Нажмите после оплаты:"
     ),
     "btn_confirm_pay": "✅ Я оплатил — Подтвердить",
     "buyer_paid": (
-        "⏳ *Оплата подтверждена!*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "  ⏳  *ОПЛАТА ПОДТВЕРЖДЕНА!*\n"
+        "╚══════════════════════╝\n\n"
         "💰 Сумма: *{amount} {cur}*\n"
-        "📌 Статус: 🟠 Ожидание передачи NFT\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "✅ Продавец уведомлён и должен передать\n"
-        "вам NFT подарок в ближайшее время.\n\n"
-        "🔔 Как только продавец отправит NFT —\n"
-        "вы получите уведомление для подтверждения.\n\n"
-        "⚠️ Если продавец не отвечает более 30 минут —\n"
-        "откройте спор: @{support}"
+        "📌 Статус: 🟠 Ожидание передачи NFT\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "✅ Продавец уведомлён.\n"
+        "Как только он отправит NFT —\n"
+        "вы получите уведомление.\n\n"
+        "⚠️ Не отвечает более 30 минут? @{support}"
     ),
     "seller_notif": (
-        "🔔 *ПОКУПАТЕЛЬ ОПЛАТИЛ ВАШУ СДЕЛКУ!*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        " 🔔  *ПОКУПАТЕЛЬ ОПЛАТИЛ!*\n"
+        "╚══════════════════════╝\n\n"
         "🎁 Подарок: *{gift}*\n"
         "💰 Сумма: *{amount} {cur}*\n"
         "👤 Покупатель: *{buyer}*\n"
-        "🆔 ID: `{id}`\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "✅ Покупатель подтвердил оплату.\n\n"
-        "👉 *Передайте NFT подарок покупателю*\n"
-        "и нажмите кнопку ниже:"
+        "🆔 ID: `{id}`\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "👉 *Передайте NFT подарок и нажмите кнопку:*"
     ),
     "btn_nft_sent": "📦 Я передал NFT подарок",
     "seller_waiting_confirm": (
         "⏳ *Ожидание подтверждения покупателя*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🎁 Подарок: *{gift}*\n"
-        "💰 Сумма: *{amount} {cur}*\n"
-        "📌 Статус: 📦 NFT передан, ожидаем подтверждения\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "Покупатель получил уведомление и должен\n"
-        "подтвердить получение NFT подарка.\n\n"
-        "⚠️ Если покупатель не отвечает — @{support}"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "🎁 {gift}  |  💰 {amount} {cur}\n"
+        "📌 Статус: 📦 NFT передан\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        "⚠️ Покупатель не отвечает? — @{support}"
     ),
     "buyer_nft_received_prompt": (
-        "📦 *Продавец передал NFT подарок!*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        " 📦  *NFT ПОДАРОК ПЕРЕДАН!*\n"
+        "╚══════════════════════╝\n\n"
         "🎁 Подарок: *{gift}*\n"
-        "💰 Сумма: *{amount} {cur}*\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "Проверьте, что NFT подарок был передан вам.\n\n"
-        "✅ Если всё в порядке — подтвердите получение.\n"
-        "⚖️ Если подарок не получен — откройте спор."
+        "💰 Сумма: *{amount} {cur}*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "Проверьте, что NFT подарок получен.\n\n"
+        "✅ Всё в порядке — подтвердите получение.\n"
+        "⚖️ Подарок не получен — откройте спор."
     ),
     "btn_confirm_receipt": "✅ Подтверждаю — получил NFT",
     "deal_done_seller": (
-        "🎉 *Сделка успешно завершена!*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "   🎉  *СДЕЛКА ЗАВЕРШЕНА!*\n"
+        "╚══════════════════════╝\n\n"
         "✅ Покупатель подтвердил получение NFT\n"
         "💰 Средства разблокированы\n"
-        "📊 Счётчик сделок обновлён\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "📊 Счётчик сделок обновлён\n\n"
         "Спасибо за использование OTC NFT Market! 💎"
     ),
     "deal_done_buyer": (
-        "🎉 *Сделка завершена!*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "   🎉  *СДЕЛКА ЗАВЕРШЕНА!*\n"
+        "╚══════════════════════╝\n\n"
         "✅ Вы подтвердили получение NFT подарка\n"
-        "🔐 Эскроу‑защита снята\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "🔐 Эскроу‑защита снята\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Пожалуйста, оцените продавца:"
     ),
     "review_prompt": "⭐ *Оцените продавца*\n\nВыберите оценку от 1 до 5:",
@@ -352,30 +439,31 @@ T["ru"] = {
     ),
     "deal_detail": (
         "📋 *Детали сделки*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "🆔 ID: `{id}`\n"
         "🎁 Подарок: *{gift}*\n"
         "💰 Сумма: *{amount} {cur}*\n"
         "📌 Статус: {status_icon} {status}\n"
         "📅 Создана: {date}\n"
         "{buyer_line}"
-        "━━━━━━━━━━━━━━━━━━━━━━"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰"
     ),
     "btn_deal_detail": "🔎 Детали",
     "seller_stats": (
-        "📊 *Статистика продавца*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "    📊  *МОЯ СТАТИСТИКА*\n"
+        "╚══════════════════════╝\n\n"
         "📋 Всего сделок: *{total}*\n"
         "✅ Завершено: *{done}*\n"
         "🟡 Активных: *{active}*\n"
-        "❌ Отменено: *{cancelled}*\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "❌ Отменено: *{cancelled}*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💰 *Оборот по валютам:*\n"
         "{turnover}"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💵 Средний чек: *{avg_deal}*\n"
         "⭐ Рейтинг: *{rating}* / 5.0\n"
-        "━━━━━━━━━━━━━━━━━━━━━━"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰"
     ),
     "search_deal_prompt": "🔍 *Поиск сделки*\n\nВведите ID сделки (или первые символы):",
     "search_deal_found":  "🔍 *Результаты поиска:*\n\n{result}",
@@ -383,35 +471,33 @@ T["ru"] = {
     "btn_search":         "🔍 Найти сделку",
     "fee_choice": (
         "💸 *Кто покрывает комиссию маркета (3%)?*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💰 Базовая сумма: *{amount} {cur}*\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "• *Покупатель платит комиссию*\n"
-        "  Вы получите: *{amount} {cur}*\n"
-        "  Покупатель заплатит: *{amount_with_fee} {cur}*\n\n"
-        "• *Вы покрываете комиссию*\n"
-        "  Покупатель заплатит: *{amount} {cur}*\n"
-        "  Вы получите: *{amount_after_fee} {cur}*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        "  • *Покупатель платит комиссию*\n"
+        "    Вы получите: *{amount} {cur}*\n"
+        "    Покупатель заплатит: *{amount_with_fee} {cur}*\n\n"
+        "  • *Вы покрываете комиссию*\n"
+        "    Покупатель заплатит: *{amount} {cur}*\n"
+        "    Вы получите: *{amount_after_fee} {cur}*\n\n"
         "Выберите:"
     ),
     "btn_fee_buyer":  "👤 Покупатель платит комиссию",
     "btn_fee_seller": "🏪 Я покрываю комиссию",
     "admin_granted":  "🔐 *Права администратора активированы*\n\nИспользуйте кнопки ниже:",
-    # ── Feature 5: joined date shown in profile ──
     "profile_joined": "📅 На платформе с: *{date}*",
-    # ── Feature 4: platform stats ────────────────
     "btn_platform_stats": "🌐 Статистика маркета",
     "platform_stats": (
-        "🌐 *Статистика Fides Deal Market*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "   🌐  *СТАТИСТИКА МАРКЕТА*\n"
+        "╚══════════════════════╝\n\n"
         "📋 Всего сделок: *{total}*\n"
         "✅ Успешно завершено: *{done}*\n"
         "📈 Процент успеха: *{pct}%*\n"
         "⚖️ Споров: *{disputes}*\n"
-        "👥 Пользователей: *{users}*\n"
-        "━━━━━━━━━━━━━━━━━━━━━━"
+        "👥 Пользователей: *{users}*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰"
     ),
-    # ── Feature 6: buyer timer ────────────────────
     "buyer_timer_alert": (
         "⏰ *Время истекло!*\n\n"
         "Прошло 30 минут с момента вашей оплаты,\n"
@@ -420,30 +506,32 @@ T["ru"] = {
         "🎁 {gift}  |  💰 {amount} {cur}\n\n"
         "👇 Рекомендуем открыть спор:"
     ),
-    # ── Feature 10: FAQ ───────────────────────────
     "btn_faq": "❓ FAQ",
     "faq": (
-        "❓ *Часто задаваемые вопросы*\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "╔══════════════════════╗\n"
+        "    ❓  *ЧАСТЫЕ ВОПРОСЫ*\n"
+        "╚══════════════════════╝\n\n"
         "🔐 *Что если продавец не отдаст NFT?*\n"
         "Откройте спор — модератор решит вопрос\n"
         "за 30 минут и вернёт деньги.\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💰 *Как работает эскроу?*\n"
         "Деньги «замораживаются» до момента\n"
-        "подтверждения получения NFT покупателем.\n\n"
+        "подтверждения получения NFT.\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "⏱ *Сколько времени на сделку?*\n"
         "Продавец должен передать NFT в течение\n"
         "30 минут после получения оплаты.\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💸 *Какая комиссия?*\n"
-        "3% от суммы сделки. Вы выбираете,\n"
-        "кто её оплачивает — продавец или покупатель.\n\n"
-        "🛡️ *Как убедиться в надёжности продавца?*\n"
-        "Смотрите рейтинг (⭐) и число сделок.\n"
-        "Чем выше — тем надёжнее.\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━"
+        "3% от суммы сделки.\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "🛡️ *Как проверить надёжность продавца?*\n"
+        "Смотрите рейтинг ⭐ и число сделок.\n"
+        "Чем выше — тем надёжнее.\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰"
     ),
 }
-
 # ── Ukrainian ────────────────────────────────────────
 T["uk"] = {
     "welcome": (
@@ -1107,64 +1195,74 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(T["en"]["buyer_welcome"], reply_markup=lang_kb(), parse_mode="Markdown")
         return LANG_ST
 
-    # ── New Fides Deal style welcome ──────────────
+    # ── Animated welcome ──────────────────────────
     ctx.user_data["flow"] = "seller"
 
-    # Step 1: Logo / brand screen
     loading_msg = await update.message.reply_text(
-        "💎 *Fides Deal Market*\n\n"
+        "╔══════════════════════╗\n"
+        "       💎  *OTC NFT MARKET*\n"
+        "╚══════════════════════╝\n\n"
         "⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛\n"
-        "🔄 Загружаем платформу...",
+        "🔄 *Загружаем платформу...*",
         parse_mode="Markdown"
     )
 
     import asyncio
 
-    await asyncio.sleep(0.8)
+    await asyncio.sleep(0.7)
     await loading_msg.edit_text(
-        "💎 *Fides Deal Market*\n\n"
+        "╔══════════════════════╗\n"
+        "       💎  *OTC NFT MARKET*\n"
+        "╚══════════════════════╝\n\n"
         "🟩⬛⬛⬛⬛⬛⬛⬛⬛⬛\n"
-        "🔄 Проверяем защиту...",
+        "🛡️ *Проверяем защиту...*",
         parse_mode="Markdown"
     )
 
     await asyncio.sleep(0.6)
     await loading_msg.edit_text(
-        "💎 *Fides Deal Market*\n\n"
+        "╔══════════════════════╗\n"
+        "       💎  *OTC NFT MARKET*\n"
+        "╚══════════════════════╝\n\n"
         "🟩🟩🟩⬛⬛⬛⬛⬛⬛⬛\n"
-        "🔐 Активируем эскроу...",
+        "🔐 *Активируем эскроу...*",
         parse_mode="Markdown"
     )
 
     await asyncio.sleep(0.6)
     await loading_msg.edit_text(
-        "💎 *Fides Deal Market*\n\n"
+        "╔══════════════════════╗\n"
+        "       💎  *OTC NFT MARKET*\n"
+        "╚══════════════════════╝\n\n"
         "🟩🟩🟩🟩🟩⬛⬛⬛⬛⬛\n"
-        "🛡️ Верифицируем платформу...",
+        "💰 *Проверяем кошельки...*",
         parse_mode="Markdown"
     )
 
     await asyncio.sleep(0.6)
     await loading_msg.edit_text(
-        "💎 *Fides Deal Market*\n\n"
-        "🟩🟩🟩🟩🟩🟩🟩🟩⬛⬛\n"
-        "⚡️ Подключаем уведомления...",
+        "╔══════════════════════╗\n"
+        "       💎  *OTC NFT MARKET*\n"
+        "╚══════════════════════╝\n\n"
+        "🟩🟩🟩🟩🟩🟩🟩⬛⬛⬛\n"
+        "⚡️ *Подключаем уведомления...*",
         parse_mode="Markdown"
     )
 
     await asyncio.sleep(0.6)
     await loading_msg.edit_text(
-        "💎 *Fides Deal Market*\n\n"
+        "╔══════════════════════╗\n"
+        "       💎  *OTC NFT MARKET*\n"
+        "╚══════════════════════╝\n\n"
         "🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩\n"
-        "✅ Готово!",
+        "✅ *Готово! Добро пожаловать!*",
         parse_mode="Markdown"
     )
 
     await asyncio.sleep(0.5)
 
-    # Step 2: Full welcome screen
     await loading_msg.edit_text(
-        T["en"]["welcome"],
+        T["ru"]["welcome"],
         reply_markup=lang_kb(),
         parse_mode="Markdown"
     )
@@ -1414,8 +1512,23 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
         return MENU_ST
 
-    # ── Requisites ────────────────────────────────
+    # ── Requisites / Wallet menu ──────────────────
     if d == "req":
+        await q.edit_message_text(
+            tr(ctx, "req_menu"),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(tr(ctx, "btn_req_pay"),      callback_data="req_pay")],
+                [InlineKeyboardButton(tr(ctx, "btn_req_deposit"),  callback_data="req_deposit"),
+                 InlineKeyboardButton(tr(ctx, "btn_req_withdraw"), callback_data="req_withdraw")],
+                [InlineKeyboardButton(tr(ctx, "btn_req_balance"),  callback_data="req_balance")],
+                [InlineKeyboardButton(tr(ctx, "back"),             callback_data="menu")],
+            ]),
+            parse_mode="Markdown"
+        )
+        return REQ_CUR_ST
+
+    # ── Bind payment details ──────────────────────
+    if d == "req_pay":
         items = list(CURRENCIES.items())
         kb = []
         for i in range(0, len(items), 2):
@@ -1426,9 +1539,124 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     check = "✅ " if code in u["req"] else ""
                     row.append(InlineKeyboardButton(f"{check}{cname}", callback_data=f"rq_{code}"))
             kb.append(row)
-        kb.append([InlineKeyboardButton(tr(ctx,"back"), callback_data="menu")])
-        await q.edit_message_text(tr(ctx,"req_menu"), reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
+        kb.append([InlineKeyboardButton(tr(ctx, "back"), callback_data="req")])
+        await q.edit_message_text(
+            tr(ctx, "req_currencies_menu"),
+            reply_markup=InlineKeyboardMarkup(kb),
+            parse_mode="Markdown"
+        )
         return REQ_CUR_ST
+
+    # ── Balance view ──────────────────────────────
+    if d == "req_balance":
+        bal = u.get("balance", {})
+        if bal:
+            lines = "".join(f"  💵 *{k}:* {v}\n" for k, v in bal.items())
+        else:
+            lines = tr(ctx, "balance_empty")
+        await q.edit_message_text(
+            tr(ctx, "balance_view",
+               balance_lines=lines,
+               joined=u.get("joined", "—"),
+               rating=u.get("rating", 5.0),
+               dc=u.get("deals_count", 0)),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(tr(ctx, "btn_req_deposit"),  callback_data="req_deposit"),
+                 InlineKeyboardButton(tr(ctx, "btn_req_withdraw"), callback_data="req_withdraw")],
+                [InlineKeyboardButton(tr(ctx, "back"), callback_data="req")],
+            ]),
+            parse_mode="Markdown"
+        )
+        return REQ_CUR_ST
+
+    # ── Deposit: choose currency ──────────────────
+    if d == "req_deposit":
+        items = list(CURRENCIES.items())
+        kb = []
+        for i in range(0, len(items), 2):
+            row = []
+            for j in range(2):
+                if i+j < len(items):
+                    code, cname = items[i+j]
+                    row.append(InlineKeyboardButton(cname, callback_data=f"dep_cur_{code}"))
+            kb.append(row)
+        kb.append([InlineKeyboardButton(tr(ctx, "back"), callback_data="req")])
+        await q.edit_message_text(
+            tr(ctx, "deposit_menu"),
+            reply_markup=InlineKeyboardMarkup(kb),
+            parse_mode="Markdown"
+        )
+        return DEPOSIT_ST
+
+    if d.startswith("dep_cur_"):
+        cur = d[8:]
+        if cur in CURRENCIES:
+            ctx.user_data["dep_cur"] = cur
+            ctx.user_data["await"]   = "deposit"
+            min_val = MIN_AMOUNTS.get(cur, 1)
+            await q.edit_message_text(
+                tr(ctx, "deposit_enter", cur=CURRENCIES.get(cur, cur), min=min_val),
+                reply_markup=back_kb(ctx, "req_deposit"),
+                parse_mode="Markdown"
+            )
+            return DEPOSIT_ST
+        return MENU_ST
+
+    # ── Withdraw: choose currency ─────────────────
+    if d == "req_withdraw":
+        items = list(CURRENCIES.items())
+        kb = []
+        for i in range(0, len(items), 2):
+            row = []
+            for j in range(2):
+                if i+j < len(items):
+                    code, cname = items[i+j]
+                    bal_val = u.get("balance", {}).get(code, 0)
+                    row.append(InlineKeyboardButton(
+                        f"{cname} ({bal_val})", callback_data=f"wdr_cur_{code}"
+                    ))
+            kb.append(row)
+        kb.append([InlineKeyboardButton(tr(ctx, "back"), callback_data="req")])
+        await q.edit_message_text(
+            tr(ctx, "withdraw_menu"),
+            reply_markup=InlineKeyboardMarkup(kb),
+            parse_mode="Markdown"
+        )
+        return WITHDRAW_ST
+
+    if d.startswith("wdr_cur_"):
+        cur = d[8:]
+        if cur in CURRENCIES:
+            available = u.get("balance", {}).get(cur, 0)
+            req_val   = u.get("req", {}).get(cur)
+            if not req_val:
+                await q.edit_message_text(
+                    tr(ctx, "withdraw_no_req", cur=CURRENCIES.get(cur, cur)),
+                    reply_markup=back_kb(ctx, "req_withdraw"),
+                    parse_mode="Markdown"
+                )
+                return WITHDRAW_ST
+            min_val = MIN_AMOUNTS.get(cur, 1)
+            if available < min_val:
+                await q.edit_message_text(
+                    tr(ctx, "withdraw_no_balance", available=available,
+                       cur=CURRENCIES.get(cur, cur)),
+                    reply_markup=back_kb(ctx, "req_withdraw"),
+                    parse_mode="Markdown"
+                )
+                return WITHDRAW_ST
+            ctx.user_data["wdr_cur"]  = cur
+            ctx.user_data["await"]    = "withdraw"
+            await q.edit_message_text(
+                tr(ctx, "withdraw_enter",
+                   cur=CURRENCIES.get(cur, cur),
+                   available=available,
+                   min=min_val),
+                reply_markup=back_kb(ctx, "req_withdraw"),
+                parse_mode="Markdown"
+            )
+            return WITHDRAW_ST
+        return MENU_ST
 
     if d.startswith("rq_"):
         cur = d[3:]
@@ -1854,6 +2082,98 @@ async def msg_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if ctx.user_data.get("is_admin") and ctx.user_data.get("adm_action"):
         return await adm_input_handler(update, ctx)
 
+    if aw == "deposit":
+        try:
+            amount  = float(text.replace(",", ".").replace(" ", ""))
+            cur     = ctx.user_data.get("dep_cur", "USDT")
+            min_val = MIN_AMOUNTS.get(cur, 1)
+            if amount < min_val:
+                await update.message.reply_text(
+                    tr(ctx, "min_amount", min=min_val, cur=CURRENCIES.get(cur, cur)),
+                    parse_mode="Markdown"
+                )
+                return DEPOSIT_ST
+            req_id = str(uuid.uuid4()).replace("-", "")[:8].upper()
+            ctx.user_data.pop("await",   None)
+            ctx.user_data.pop("dep_cur", None)
+            # Notify support
+            try:
+                await ctx.bot.send_message(
+                    chat_id=f"@{SUPPORT_USERNAME}",
+                    text=(
+                        f"📥 *Заявка на пополнение*\n\n"
+                        f"👤 ID: `{uid}`\n"
+                        f"👤 Имя: {update.effective_user.full_name}\n"
+                        f"💰 Сумма: *{amount} {cur}*\n"
+                        f"🆔 Заявка: `{req_id}`"
+                    ),
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                pass
+            await update.message.reply_text(
+                tr(ctx, "deposit_pending", amount=amount,
+                   cur=CURRENCIES.get(cur, cur), req_id=req_id),
+                reply_markup=menu_kb(ctx),
+                parse_mode="Markdown"
+            )
+        except ValueError:
+            await update.message.reply_text(tr(ctx, "bad_amount"), parse_mode="Markdown")
+            return DEPOSIT_ST
+        return MENU_ST
+
+    if aw == "withdraw":
+        try:
+            amount    = float(text.replace(",", ".").replace(" ", ""))
+            cur       = ctx.user_data.get("wdr_cur", "USDT")
+            available = u.get("balance", {}).get(cur, 0)
+            min_val   = MIN_AMOUNTS.get(cur, 1)
+            if amount < min_val:
+                await update.message.reply_text(
+                    tr(ctx, "min_amount", min=min_val, cur=CURRENCIES.get(cur, cur)),
+                    parse_mode="Markdown"
+                )
+                return WITHDRAW_ST
+            if amount > available:
+                await update.message.reply_text(
+                    tr(ctx, "withdraw_no_balance", available=available,
+                       cur=CURRENCIES.get(cur, cur)),
+                    parse_mode="Markdown"
+                )
+                return WITHDRAW_ST
+            req_id  = str(uuid.uuid4()).replace("-", "")[:8].upper()
+            req_val = u.get("req", {}).get(cur, "—")
+            # Deduct balance
+            u.setdefault("balance", {})[cur] = round(available - amount, 8)
+            ctx.user_data.pop("await",   None)
+            ctx.user_data.pop("wdr_cur", None)
+            # Notify support
+            try:
+                await ctx.bot.send_message(
+                    chat_id=f"@{SUPPORT_USERNAME}",
+                    text=(
+                        f"📤 *Заявка на вывод*\n\n"
+                        f"👤 ID: `{uid}`\n"
+                        f"👤 Имя: {update.effective_user.full_name}\n"
+                        f"💰 Сумма: *{amount} {cur}*\n"
+                        f"📋 Реквизиты: `{req_val}`\n"
+                        f"🆔 Заявка: `{req_id}`"
+                    ),
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                pass
+            await update.message.reply_text(
+                tr(ctx, "withdraw_pending", amount=amount,
+                   cur=CURRENCIES.get(cur, cur), req=req_val, req_id=req_id),
+                reply_markup=menu_kb(ctx),
+                parse_mode="Markdown"
+            )
+        except ValueError:
+            await update.message.reply_text(tr(ctx, "bad_amount"), parse_mode="Markdown")
+            return WITHDRAW_ST
+        return MENU_ST
+
     if aw == "req":
         cur = ctx.user_data.get("rq_cur")
         if cur:
@@ -2019,6 +2339,8 @@ def main():
             SUPPORT_ST:   all_msg + all_cb,
             ADMIN_ST:     all_msg + all_cb,
             REVIEW_ST:    all_cb,
+            DEPOSIT_ST:   all_msg + all_cb,
+            WITHDRAW_ST:  all_msg + all_cb,
         },
         fallbacks=[
             CommandHandler("start",   start),
