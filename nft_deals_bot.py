@@ -2,7 +2,7 @@ import logging
 import uuid
 import os
 from datetime import datetime
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes, ConversationHandler
@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 SUPPORT_USERNAME = "otcmarketHelper"
+
+# ── Mini App URL — замени на свой URL (GitHub Pages / Vercel / etc) ──
+MINI_APP_URL = "https://rimuc-crypto.github.io/tc-market-banner/"
 
 # ── States ──────────────────────────────────────────
 LANG_ST      = 1
@@ -70,26 +73,26 @@ T = {}
 
 T["ru"] = {
     "welcome": (
-        "╔══════════════════════╗\n"
-        "       💎  *OTC NFT MARKET*  💎\n"
-        "╚══════════════════════╝\n\n"
+        "◇ ──────────────────── ◇\n"
+        "        💎  *OTC NFT MARKET*  💎\n"
+        "◇ ──────────────────── ◇\n\n"
         "🏆 *Добро пожаловать!*\n"
         "Надёжная площадка для торговли\n"
         "NFT‑подарками в Telegram\n\n"
         "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
-        "🛡️  *Защита от мошенников*\n"
-        "💰  *Автоматическое удержание средств*\n"
-        "📊  *Прозрачная статистика*\n"
-        "💬  *Поддержка 24 / 7*\n"
-        "📜  *История всех сделок*\n\n"
+        "🛡 Защита от мошенников\n"
+        "💰 Автоматическое удержание средств\n"
+        "📊 Прозрачная статистика\n"
+        "💬 Поддержка 24 / 7\n"
+        "📜 История всех сделок\n\n"
         "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
-        "👇 *Выберите язык интерфейса:*"
+        "👇 Выберите язык интерфейса:"
     ),
     "blocked": "⛔ *Аккаунт заблокирован*\n\nОбратитесь в поддержку: @{support}",
     "menu": (
-        "╔══════════════════════╗\n"
+        "◇ ──────────────────── ◇\n"
         "      🏠  *OTC NFT MARKET*\n"
-        "╚══════════════════════╝\n\n"
+        "◇ ──────────────────── ◇\n\n"
         "👤 *{name}*\n"
         "⭐ Рейтинг: *{rating}* / 5.0  │  📊 Сделок: *{dc}*\n\n"
         "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
@@ -113,6 +116,8 @@ T["ru"] = {
         "╔══════════════════════╗\n"
         "  💳  *РЕКВИЗИТЫ И КОШЕЛЁК*\n"
         "╚══════════════════════╝\n\n"
+        "💰 *Ваш баланс:*\n"
+        "{balance_lines}"
         "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Выберите действие:"
     ),
@@ -254,7 +259,7 @@ T["ru"] = {
     "support_sent": "✅ *Сообщение отправлено!*\n\nМенеджер @{support} ответит в течение 15 минут. 🙏",
     "about": (
         "╔══════════════════════╗\n"
-        "    ℹ️  *OTC NFT MARKET*\n"
+        "    ℹ️  *FIDES DEAL MARKET*\n"
         "╚══════════════════════╝\n\n"
         "Надёжный способ покупать и продавать\n"
         "NFT‑подарки в Telegram.\n\n"
@@ -284,7 +289,7 @@ T["ru"] = {
     "s_cancelled": "❌ Отменена",
     "buyer_welcome": (
         "╔══════════════════════╗\n"
-        "    🤝  *OTC NFT MARKET*\n"
+        "    🤝  *FIDES DEAL MARKET*\n"
         "╚══════════════════════╝\n\n"
         "👋 *Добро пожаловать!*\n"
         "Вас пригласили к защищённой сделке.\n\n"
@@ -485,6 +490,23 @@ T["ru"] = {
     "btn_fee_buyer":  "👤 Покупатель платит комиссию",
     "btn_fee_seller": "🏪 Я покрываю комиссию",
     "admin_granted":  "🔐 *Права администратора активированы*\n\nИспользуйте кнопки ниже:",
+    "insufficient_balance": (
+        "❌ *Недостаточно средств на балансе*\n\n"
+        "Нужно: *{need} {cur}*\n"
+        "Доступно: *{have} {cur}*\n\n"
+        "Пополните баланс в разделе *Реквизиты → Пополнить*"
+    ),
+    "seller_balance_credited": (
+        "💰 *Средства зачислены на баланс!*\n\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        "✅ Сделка завершена\n"
+        "💵 Зачислено: *{amount} {cur}*\n"
+        "📊 Итоговый баланс: *{total} {cur}*\n"
+        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        "Для вывода: *Реквизиты → Вывести средства*"
+    ),
+    "nft_sent_already": "⚠️ NFT уже отмечен как переданный.",
+    "confirm_receipt_already": "⚠️ Получение уже подтверждено.",
     "profile_joined": "📅 На платформе с: *{date}*",
     "btn_platform_stats": "🌐 Статистика маркета",
     "platform_stats": (
@@ -961,8 +983,9 @@ def menu_kb(ctx):
          InlineKeyboardButton(tr(ctx,"btn_support"), callback_data="support")],
         [InlineKeyboardButton(tr(ctx,"btn_stats"),   callback_data="seller_stats"),
          InlineKeyboardButton(tr(ctx,"btn_about"),   callback_data="about")],
-        [InlineKeyboardButton(tr(ctx,"btn_faq"),          callback_data="faq"),
+        [InlineKeyboardButton(tr(ctx,"btn_faq"),           callback_data="faq"),
          InlineKeyboardButton(tr(ctx,"btn_platform_stats"), callback_data="platform_stats")],
+        [InlineKeyboardButton("🌐 Открыть маркет", web_app=WebAppInfo(url=MINI_APP_URL))],
     ])
 
 def back_kb(ctx, cb="menu"):
@@ -973,6 +996,21 @@ def status_icon(status):
 
 def now_str():
     return datetime.now().strftime("%d.%m.%Y %H:%M")
+
+def balance_short(u):
+    """Return short balance string for menu display."""
+    bal = u.get("balance", {})
+    items = [(k, v) for k, v in bal.items() if v > 0]
+    if not items:
+        return "—"
+    return " | ".join(f"{round(v,2)} {k}" for k,v in items[:3])
+
+def menu_text(ctx, name, u):
+    """Build menu message text."""
+    return tr(ctx, "menu",
+              name=name,
+              rating=u.get("rating", 5.0),
+              dc=u.get("deals_count", 0))
 
 
 # ════════════════════════════════════════════════════
@@ -1198,21 +1236,42 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # ── Animated welcome ──────────────────────────
     ctx.user_data["flow"] = "seller"
 
+    import asyncio
+
+    # ── Баннер при старте ─────────────────────────
+    # Шаг 1: Отправь картинку боту командой /getbannerid (см. ниже)
+    # Шаг 2: Вставь полученный file_id сюда:
+    BANNER_FILE_ID = ""   # ← вставь file_id своей картинки сюда
+    BANNER_CAPTION = (
+        "◇ ──────────────────── ◇\n"
+        "        💎  *OTC NFT MARKET*  💎\n"
+        "◇ ──────────────────── ◇\n\n"
+        "Надёжная площадка для торговли\n"
+        "NFT‑подарками в Telegram"
+    )
+    if BANNER_FILE_ID:
+        try:
+            await update.message.reply_photo(
+                photo=BANNER_FILE_ID,
+                caption=BANNER_CAPTION,
+                parse_mode="Markdown"
+            )
+        except Exception:
+            pass
+
     loading_msg = await update.message.reply_text(
         "╔══════════════════════╗\n"
-        "       💎  *OTC NFT MARKET*\n"
+        "       💎  *FIDES DEAL MARKET*\n"
         "╚══════════════════════╝\n\n"
         "⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛\n"
         "🔄 *Загружаем платформу...*",
         parse_mode="Markdown"
     )
 
-    import asyncio
-
     await asyncio.sleep(0.7)
     await loading_msg.edit_text(
         "╔══════════════════════╗\n"
-        "       💎  *OTC NFT MARKET*\n"
+        "       💎  *FIDES DEAL MARKET*\n"
         "╚══════════════════════╝\n\n"
         "🟩⬛⬛⬛⬛⬛⬛⬛⬛⬛\n"
         "🛡️ *Проверяем защиту...*",
@@ -1222,7 +1281,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await asyncio.sleep(0.6)
     await loading_msg.edit_text(
         "╔══════════════════════╗\n"
-        "       💎  *OTC NFT MARKET*\n"
+        "       💎  *FIDES DEAL MARKET*\n"
         "╚══════════════════════╝\n\n"
         "🟩🟩🟩⬛⬛⬛⬛⬛⬛⬛\n"
         "🔐 *Активируем эскроу...*",
@@ -1232,7 +1291,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await asyncio.sleep(0.6)
     await loading_msg.edit_text(
         "╔══════════════════════╗\n"
-        "       💎  *OTC NFT MARKET*\n"
+        "       💎  *FIDES DEAL MARKET*\n"
         "╚══════════════════════╝\n\n"
         "🟩🟩🟩🟩🟩⬛⬛⬛⬛⬛\n"
         "💰 *Проверяем кошельки...*",
@@ -1242,7 +1301,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await asyncio.sleep(0.6)
     await loading_msg.edit_text(
         "╔══════════════════════╗\n"
-        "       💎  *OTC NFT MARKET*\n"
+        "       💎  *FIDES DEAL MARKET*\n"
         "╚══════════════════════╝\n\n"
         "🟩🟩🟩🟩🟩🟩🟩⬛⬛⬛\n"
         "⚡️ *Подключаем уведомления...*",
@@ -1252,7 +1311,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await asyncio.sleep(0.6)
     await loading_msg.edit_text(
         "╔══════════════════════╗\n"
-        "       💎  *OTC NFT MARKET*\n"
+        "       💎  *FIDES DEAL MARKET*\n"
         "╚══════════════════════╝\n\n"
         "🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩\n"
         "✅ *Готово! Добро пожаловать!*",
@@ -1348,7 +1407,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return BUYER_ST
 
         await q.edit_message_text(
-            tr(ctx,"menu", name=name, rating=u.get("rating",5.0), dc=u.get("deals_count",0)),
+            menu_text(ctx, name, u),
             reply_markup=menu_kb(ctx), parse_mode="Markdown"
         )
         return MENU_ST
@@ -1358,7 +1417,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ctx.user_data["flow"] = "seller"
         ctx.user_data.pop("await", None)
         await q.edit_message_text(
-            tr(ctx,"menu", name=name, rating=u.get("rating",5.0), dc=u.get("deals_count",0)),
+            menu_text(ctx, name, u),
             reply_markup=menu_kb(ctx), parse_mode="Markdown"
         )
         return MENU_ST
@@ -1402,7 +1461,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         cur    = ctx.user_data.get("dcur")
         if not amount or not cur:
             await q.edit_message_text(
-                tr(ctx,"menu", name=name, rating=u.get("rating",5.0), dc=u.get("deals_count",0)),
+                menu_text(ctx, name, u),
                 reply_markup=menu_kb(ctx), parse_mode="Markdown"
             )
             return MENU_ST
@@ -1514,8 +1573,10 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     # ── Requisites / Wallet menu ──────────────────
     if d == "req":
+        bal = u.get("balance", {})
+        bal_lines = "".join(f"  • *{round(v,8)}* {k}\n" for k,v in bal.items() if v > 0) or "  • —\n"
         await q.edit_message_text(
-            tr(ctx, "req_menu"),
+            tr(ctx, "req_menu", balance_lines=bal_lines),
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(tr(ctx, "btn_req_pay"),      callback_data="req_pay")],
                 [InlineKeyboardButton(tr(ctx, "btn_req_deposit"),  callback_data="req_deposit"),
@@ -1758,17 +1819,26 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if d.startswith("pay_"):
         did  = d[4:]
         deal = deals.get(did)
-        if not deal or deal["status"] in ("done","cancelled","paid","nft_sent"):
+        if not deal:
             await q.edit_message_text(tr(ctx,"deal_not_found"), parse_mode="Markdown")
             return MENU_ST
+        if deal["status"] in ("done","cancelled"):
+            await q.edit_message_text(tr(ctx,"deal_not_found"), parse_mode="Markdown")
+            return MENU_ST
+        if deal["status"] in ("paid","nft_sent"):
+            await q.answer("⚠️ Сделка уже оплачена другим покупателем.", show_alert=True)
+            return BUYER_ST
         if deal["seller_id"] == uid:
             await q.answer("❌ Нельзя купить собственную сделку", show_alert=True)
             return BUYER_ST
         if deal.get("locked_by") and deal["locked_by"] != uid:
-            await q.answer("⚠️ Сделка уже открыта другим покупателем.", show_alert=True)
+            await q.answer("⚠️ Сделка уже открыта другим покупателем.\nПопробуйте через минуту.", show_alert=True)
             return BUYER_ST
         deal["locked_by"]  = uid
         req                = get_user(deal["seller_id"])["req"].get(deal["currency"],"—")
+        if req == "—":
+            await q.answer("⚠️ Продавец не указал реквизиты для этой валюты.", show_alert=True)
+            return BUYER_ST
         fee_mode           = deal.get("fee_mode","seller")
         display_amount     = deal["amount"]
         if fee_mode == "buyer":
@@ -1798,18 +1868,41 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if deal["status"] != "active":
             await q.answer("⚠️ Сделка уже не активна.", show_alert=True)
             return BUYER_ST
-
-        deal["status"]     = "paid"
-        deal["buyer_id"]   = uid
-        deal["buyer_name"] = update.effective_user.full_name or "Buyer"
-        u.setdefault("buyer_deals",[])
-        if did not in u["buyer_deals"]:
-            u["buyer_deals"].append(did)
+        # ── Защита от двойного нажатия ─────────────
+        if deal.get("confirming_by") == uid:
+            await q.answer("⏳ Обработка...", show_alert=False)
+            return BUYER_ST
+        deal["confirming_by"] = uid
 
         fee_mode       = deal.get("fee_mode","seller")
         display_amount = deal["amount"]
         if fee_mode == "buyer":
             display_amount = round(deal["amount"] * 1.03, 2)
+
+        # ── Проверка баланса покупателя (если есть внутренний баланс) ──
+        cur       = deal["currency"]
+        buyer_bal = u.get("balance", {}).get(cur, 0)
+        # Если у покупателя есть баланс на платформе — проверяем хватает ли
+        if buyer_bal > 0:
+            if buyer_bal < display_amount:
+                deal.pop("confirming_by", None)
+                await q.answer(
+                    f"❌ Недостаточно средств!\n"
+                    f"Нужно: {display_amount} {cur}\n"
+                    f"Доступно: {buyer_bal} {cur}",
+                    show_alert=True
+                )
+                return BUYER_ST
+
+        deal["status"]     = "paid"
+        deal["buyer_id"]   = uid
+        deal["buyer_name"] = update.effective_user.full_name or "Buyer"
+        deal["paid_at"]    = now_str()
+        deal.pop("confirming_by", None)
+        deal.pop("locked_by", None)
+        u.setdefault("buyer_deals",[])
+        if did not in u["buyer_deals"]:
+            u["buyer_deals"].append(did)
 
         await q.edit_message_text(
             tr(ctx,"buyer_paid", amount=display_amount,
@@ -1924,6 +2017,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             deal = deals.get(did)
             if deal and deal.get("status") == "active":
                 deal.pop("locked_by", None)
+                deal.pop("confirming_by", None)
                 sl = get_user(deal["seller_id"]).get("lang","ru")
                 try:
                     await ctx.bot.send_message(
@@ -1938,7 +2032,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         ctx.user_data.pop("pending_deal", None)
         ctx.user_data["flow"] = "seller"
         await q.edit_message_text(
-            tr(ctx,"menu", name=name, rating=u.get("rating",5.0), dc=u.get("deals_count",0)),
+            menu_text(ctx, name, u),
             reply_markup=menu_kb(ctx), parse_mode="Markdown"
         )
         return MENU_ST
@@ -1955,8 +2049,11 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if deal["seller_id"] != uid:
             await q.answer("❌ Это не ваша сделка", show_alert=True)
             return MENU_ST
+        if deal["status"] == "nft_sent":
+            await q.answer("⚠️ NFT уже отмечен как переданный.", show_alert=True)
+            return MENU_ST
         if deal["status"] != "paid":
-            await q.answer("⚠️ Некорректный статус", show_alert=True)
+            await q.answer("⚠️ Некорректный статус — покупатель ещё не оплатил.", show_alert=True)
             return MENU_ST
 
         deal["status"] = "nft_sent"
@@ -1998,8 +2095,17 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         else:
             # Admin-triggered payment: no real buyer — auto-complete the deal
             deal["status"] = "done"
+            deal["done_at"] = now_str()
             seller_u = get_user(deal["seller_id"])
             seller_u["deals_count"] = seller_u.get("deals_count", 0) + 1
+            platform_stats["completed_deals"] += 1
+            # Credit seller
+            adm_cur = deal["currency"]
+            adm_amt = deal["amount"]
+            adm_credit = round(adm_amt * 0.97, 8)
+            seller_u.setdefault("balance", {})[adm_cur] = round(
+                seller_u["balance"].get(adm_cur, 0) + adm_credit, 8
+            )
             sl_done = get_user(uid).get("lang","ru")
             try:
                 await ctx.bot.send_message(
@@ -2023,14 +2129,30 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if deal.get("buyer_id") != uid:
             await q.answer("❌ Это не ваша сделка", show_alert=True)
             return BUYER_ST
+        if deal["status"] == "done":
+            await q.answer("✅ Сделка уже завершена.", show_alert=True)
+            return BUYER_ST
         if deal["status"] != "nft_sent":
-            await q.answer("⚠️ Некорректный статус", show_alert=True)
+            await q.answer("⚠️ Продавец ещё не передал NFT.", show_alert=True)
             return BUYER_ST
 
         deal["status"] = "done"
+        deal["done_at"] = now_str()
         seller_u = get_user(deal["seller_id"])
         seller_u["deals_count"] = seller_u.get("deals_count",0) + 1
         platform_stats["completed_deals"] += 1
+
+        # ── Зачисляем продавцу на баланс ──────────────
+        fee_mode   = deal.get("fee_mode", "seller")
+        cur        = deal["currency"]
+        base_amt   = deal["amount"]
+        if fee_mode == "seller":
+            seller_credit = round(base_amt * 0.97, 8)   # продавец платит 3%
+        else:
+            seller_credit = base_amt                      # покупатель платил комиссию
+        seller_u.setdefault("balance", {})[cur] = round(
+            seller_u["balance"].get(cur, 0) + seller_credit, 8
+        )
 
         # Buyer: done + review
         await q.edit_message_text(
@@ -2045,12 +2167,15 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown"
         )
 
-        # Notify seller: deal complete
+        # Notify seller: deal complete + balance credited
         sl = get_user(deal["seller_id"]).get("lang","ru")
+        seller_new_bal = get_user(deal["seller_id"])["balance"].get(cur, 0)
         try:
             await ctx.bot.send_message(
                 chat_id=deal["seller_id"],
-                text=tr_raw(sl,"deal_done_seller"),
+                text=tr_raw(sl,"seller_balance_credited",
+                            amount=seller_credit, cur=CURRENCIES.get(cur, cur),
+                            total=round(seller_new_bal, 8)),
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("🏠 Главное меню", callback_data="menu")
                 ]]),
@@ -2223,7 +2348,7 @@ async def msg_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         amount = ctx.user_data.get("damount")
         if not cur or not amount:
             await update.message.reply_text(
-                tr(ctx,"menu", name=name, rating=u.get("rating",5.0), dc=u.get("deals_count",0)),
+                menu_text(ctx, name, u),
                 reply_markup=menu_kb(ctx), parse_mode="Markdown"
             )
             return MENU_ST
@@ -2306,10 +2431,35 @@ async def msg_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return MENU_ST
 
     await update.message.reply_text(
-        tr(ctx,"menu", name=name, rating=u.get("rating",5.0), dc=u.get("deals_count",0)),
+        menu_text(ctx, name, u),
         reply_markup=menu_kb(ctx), parse_mode="Markdown"
     )
     return MENU_ST
+
+
+async def getbannerid_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Отправь боту картинку после этой команды чтобы получить file_id."""
+    await update.message.reply_text(
+        "📸 Теперь отправь мне картинку-баннер следующим сообщением.\n"
+        "Я пришлю тебе её file\\_id — вставь его в код как `BANNER_FILE_ID`.",
+        parse_mode="Markdown"
+    )
+    ctx.user_data["await"] = "banner_photo"
+
+
+async def banner_photo_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Получает file_id отправленной картинки."""
+    if ctx.user_data.get("await") != "banner_photo":
+        return
+    if not update.message.photo:
+        return
+    ctx.user_data.pop("await", None)
+    file_id = update.message.photo[-1].file_id
+    await update.message.reply_text(
+        f"✅ *file\\_id твоего баннера:*\n\n`{file_id}`\n\n"
+        f"Вставь это значение в код:\n`BANNER_FILE_ID = \"{file_id}\"`",
+        parse_mode="Markdown"
+    )
 
 
 # ════════════════════════════════════════════════════
@@ -2324,8 +2474,9 @@ def main():
 
     conv = ConversationHandler(
         entry_points=[
-            CommandHandler("start",   start),
-            CommandHandler("otcteam", otcteam_cmd),
+            CommandHandler("start",       start),
+            CommandHandler("otcteam",     otcteam_cmd),
+            CommandHandler("getbannerid", getbannerid_cmd),
         ],
         states={
             LANG_ST:      all_cb,
@@ -2343,14 +2494,16 @@ def main():
             WITHDRAW_ST:  all_msg + all_cb,
         },
         fallbacks=[
-            CommandHandler("start",   start),
-            CommandHandler("otcteam", otcteam_cmd),
+            CommandHandler("start",        start),
+            CommandHandler("otcteam",      otcteam_cmd),
+            CommandHandler("getbannerid",  getbannerid_cmd),
         ],
         per_message=False,
         allow_reentry=True,
     )
 
     app.add_handler(conv)
+    app.add_handler(MessageHandler(filters.PHOTO, banner_photo_handler))
 
     async def post_init(application):
         await application.bot.set_my_commands([])
