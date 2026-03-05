@@ -1258,8 +1258,13 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             buyer_amount = deal["amount"]
             if deal.get("fee_mode") == "buyer":
                 buyer_amount = round(deal["amount"] * 1.03, 2)
-            await q.edit_message_text(
-                tr(ctx,"buyer_deal",
+            try:
+                await q.delete_message()
+            except Exception:
+                pass
+            await ctx.bot.send_message(
+                chat_id=update.effective_user.id,
+                text=tr(ctx,"buyer_deal",
                    gift=deal["gift"], amount=buyer_amount,
                    cur=CURRENCIES.get(deal["currency"],deal["currency"]),
                    seller=deal["seller_name"],
@@ -1286,9 +1291,16 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 pass
             return BUYER_ST
 
-        await q.edit_message_text(
-            menu_text(ctx, name, u),
-            reply_markup=menu_kb(ctx), parse_mode="Markdown"
+        # После фото нельзя edit_message_text — удаляем и шлём меню новым сообщением
+        try:
+            await q.delete_message()
+        except Exception:
+            pass
+        await ctx.bot.send_message(
+            chat_id=update.effective_user.id,
+            text=menu_text(ctx, name, u),
+            reply_markup=menu_kb(ctx),
+            parse_mode="Markdown"
         )
         return MENU_ST
 
