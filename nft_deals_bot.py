@@ -110,13 +110,14 @@ T = {}
 
 T["ru"] = {
     "welcome": (
-        "🏠 *OTC Market*\n\n"
+        "Добро пожаловать в Bloosy Market\n\n"
         "Безопасные сделки с гарантией\n\n"
         "🛡️ Защита от мошенников\n"
         "💰 Автоматическое удержание средств\n"
         "📝 Прозрачная статистика\n"
         "🎯 Поддержка 24/7\n"
-        "📊 История сделок"
+        "📊 История сделок\n\n"
+        "👇 Выберите язык интерфейса:"
     ),
     "blocked": "⛔ *Аккаунт заблокирован*\n\nОбратитесь в поддержку: @{support}",
     "menu": (
@@ -1285,7 +1286,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     ctx.user_data["flow"] = "seller"
 
     await update.message.reply_text(
-        tr(ctx, "welcome"),
+        "🌐 *Выберите язык / Choose language:*",
         reply_markup=lang_kb(),
         parse_mode="Markdown"
     )
@@ -1743,7 +1744,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 await q.edit_message_text(tr(ctx,"lang_pick"), reply_markup=lang_kb(), parse_mode="Markdown")
             except Exception:
                 pass
-        return MENU_ST
+        return LANG_ST
 
     if d == "support":
         ctx.user_data["await"] = "support"
@@ -2536,7 +2537,7 @@ def main():
             CommandHandler("getbannerid", getbannerid_cmd),
         ],
         states={
-            LANG_ST:      all_cb + all_msg,
+            LANG_ST:      all_cb,
             MENU_ST:      all_cb + all_msg,
             REQ_CUR_ST:   all_cb,
             REQ_IN_ST:    all_msg + all_cb,
