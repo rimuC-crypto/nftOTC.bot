@@ -1295,6 +1295,16 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid  = update.effective_user.id
     name = update.effective_user.first_name or "User"
     u    = get_user(uid)
+    
+    # ========== DETAILED DEBUG LOGGING ==========
+    logger.info(f"🔔 CALLBACK RECEIVED:")
+    logger.info(f"   User ID: {uid}")
+    logger.info(f"   Username: @{update.effective_user.username if update.effective_user.username else 'no_username'}")
+    logger.info(f"   Callback data: {d}")
+    logger.info(f"   User lang: {u.get('lang', 'not_set')}")
+    logger.info(f"   User has requisites: {bool(u.get('req', {}))}")
+    logger.info(f"   Flow: {ctx.user_data.get('flow', 'not_set')}")
+    # ============================================
 
     if uid in blocked_users and not d.startswith("adm_"):
         lang = ctx.user_data.get("lang","ru")
@@ -1423,6 +1433,9 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     # ── Create deal ───────────────────────────────
     if d == "create":
+        logger.info(f"📝 CREATE button pressed by user {uid}")
+        logger.info(f"   Has requisites: {bool(u['req'])}")
+        logger.info(f"   Requisites: {list(u['req'].keys()) if u['req'] else []}")
         if not u["req"]:
             await q.edit_message_text(
                 tr(ctx,"no_req"),
@@ -2204,6 +2217,11 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Seller done notify error: {e}")
         return REVIEW_ST
 
+    # ========== UNHANDLED CALLBACK WARNING ==========
+    logger.warning(f"⚠️ UNHANDLED CALLBACK: {d} from user {uid}")
+    logger.warning(f"   This callback was not matched by any handler!")
+    # ================================================
+    
     return MENU_ST
 
 
