@@ -1834,7 +1834,8 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 except Exception:
                     pass
         try:
-            ctx.application.job_queue.run_once(seller_reminder_job, when=900, name=f"remind_{did}")
+            if ctx.application.job_queue is not None:
+                ctx.application.job_queue.run_once(seller_reminder_job, when=900, name=f"remind_{did}")
         except Exception:
             pass
 
@@ -1861,7 +1862,8 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 except Exception:
                     pass
         try:
-            ctx.application.job_queue.run_once(buyer_timer_job, when=1800, name=f"btimer_{did}")
+            if ctx.application.job_queue is not None:
+                ctx.application.job_queue.run_once(buyer_timer_job, when=1800, name=f"btimer_{did}")
         except Exception:
             pass
 
@@ -2383,7 +2385,10 @@ def main():
             save_data()
             logger.info(f"🔓 Авто-разблокировано {count} сделок.")
 
-    app.job_queue.run_repeating(unlock_stale_deals_job, interval=300, first=60)
+    if app.job_queue is not None:
+        app.job_queue.run_repeating(unlock_stale_deals_job, interval=300, first=60)
+    else:
+        logger.warning("⚠️ job_queue недоступен. Установи: pip install 'python-telegram-bot[job-queue]'")
 
     all_cb  = [CallbackQueryHandler(main_cb)]
     all_msg = [MessageHandler(filters.TEXT & ~filters.COMMAND, msg_handler)]
