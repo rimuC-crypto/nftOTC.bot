@@ -1,7 +1,8 @@
 import logging
 import uuid
 import os
-from datetime import datetime
+import json
+from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
@@ -45,6 +46,45 @@ platform_stats = {
     "total_users":      0,
 }
 
+# ════════════════════════════════════════════════════
+#              JSON PERSISTENCE
+# ════════════════════════════════════════════════════
+
+DATA_FILE = "bot_data.json"
+# Через сколько минут автоматически снимать блокировку сделки
+LOCK_TIMEOUT_MINUTES = 10
+
+def save_data():
+    """Сохраняет все данные в JSON-файл."""
+    try:
+        data = {
+            "users":          {str(k): v for k, v in users.items()},
+            "deals":          deals,
+            "blocked_users":  list(blocked_users),
+            "platform_stats": platform_stats,
+        }
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"save_data error: {e}")
+
+def load_data():
+    """Загружает данные из JSON-файла при старте бота."""
+    global users, deals, blocked_users, platform_stats
+    if not os.path.exists(DATA_FILE):
+        logger.info("Файл данных не найден — начинаем с чистого листа.")
+        return
+    try:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        users          = {int(k): v for k, v in data.get("users", {}).items()}
+        deals          = data.get("deals", {})
+        blocked_users  = set(data.get("blocked_users", []))
+        platform_stats.update(data.get("platform_stats", {}))
+        logger.info(f"✅ Данные загружены: {len(users)} юзеров, {len(deals)} сделок.")
+    except Exception as e:
+        logger.error(f"load_data error: {e}")
+
 
 LANGS = {
     "uk": "🇺🇦 Українська",
@@ -73,29 +113,20 @@ T = {}
 
 T["ru"] = {
     "welcome": (
-        "◇ ──────────────────── ◇\n"
-        "        💎  *OTC NFT MARKET*  💎\n"
-        "◇ ──────────────────── ◇\n\n"
-        "🏆 *Добро пожаловать!*\n"
-        "Надёжная площадка для торговли\n"
-        "NFT‑подарками в Telegram\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
-        "🛡 Защита от мошенников\n"
+        "Добро пожаловать в Bloosy Market\n\n"
+        "Безопасные сделки с гарантией\n\n"
+        "🛡️ Защита от мошенников\n"
         "💰 Автоматическое удержание средств\n"
-        "📊 Прозрачная статистика\n"
-        "💬 Поддержка 24 / 7\n"
-        "📜 История всех сделок\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        "📝 Прозрачная статистика\n"
+        "🎯 Поддержка 24/7\n"
+        "📊 История сделок\n\n"
         "👇 Выберите язык интерфейса:"
     ),
     "blocked": "⛔ *Аккаунт заблокирован*\n\nОбратитесь в поддержку: @{support}",
     "menu": (
-        "◇ ──────────────────── ◇\n"
-        "      🏠  *OTC NFT MARKET*\n"
-        "◇ ──────────────────── ◇\n\n"
+        "🏠 *OTC Market*\n\n"
         "👤 *{name}*\n"
         "⭐ Рейтинг: *{rating}* / 5.0  │  📊 Сделок: *{dc}*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Выберите действие:"
     ),
     "btn_create":  "➕ Создать сделку",
@@ -113,12 +144,8 @@ T["ru"] = {
         "👇 Перейдите в раздел *Реквизиты*"
     ),
     "req_menu": (
-        "╔══════════════════════╗\n"
-        "  💳  *РЕКВИЗИТЫ И КОШЕЛЁК*\n"
-        "╚══════════════════════╝\n\n"
         "💰 *Ваш баланс:*\n"
         "{balance_lines}"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Выберите действие:"
     ),
     "btn_req_pay":      "💳 Привязать реквизиты",
@@ -132,7 +159,6 @@ T["ru"] = {
     ),
     "req_enter": (
         "✏️ *Привязка реквизитов — {cur}*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Введите ваши платёжные данные:\n\n"
         "  • Карты: номер карты\n"
         "  • USDT: адрес TRC20 / ERC20\n"
@@ -141,36 +167,25 @@ T["ru"] = {
     ),
     "req_saved": "✅ *Реквизиты сохранены!*\n\nВалюта: *{cur}*\n\nТеперь можно создавать сделки.",
     "deposit_menu": (
-        "╔══════════════════════╗\n"
-        "   📥  *ПОПОЛНЕНИЕ БАЛАНСА*\n"
-        "╚══════════════════════╝\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Выберите валюту пополнения:"
     ),
     "deposit_enter": (
         "📥 *Пополнение — {cur}*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Введите сумму пополнения в *{cur}*:\n\n"
         "_(Минимум: {min} {cur})_"
     ),
     "deposit_pending": (
         "⏳ *Заявка на пополнение создана!*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💰 Сумма: *{amount} {cur}*\n"
         "🆔 Заявка: `{req_id}`\n\n"
         "Свяжитесь с менеджером: @{support}\n"
         "Укажите ID заявки при обращении."
     ),
     "withdraw_menu": (
-        "╔══════════════════════╗\n"
-        "   📤  *ВЫВОД СРЕДСТВ*\n"
-        "╚══════════════════════╝\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Выберите валюту для вывода:"
     ),
     "withdraw_enter": (
         "📤 *Вывод средств — {cur}*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💰 Доступно: *{available} {cur}*\n\n"
         "Введите сумму вывода:\n"
         "_(Минимум: {min} {cur})_"
@@ -182,7 +197,6 @@ T["ru"] = {
     "withdraw_no_balance": "❌ *Недостаточно средств*\n\nДоступно: *{available} {cur}*",
     "withdraw_pending": (
         "✅ *Заявка на вывод создана!*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💰 Сумма: *{amount} {cur}*\n"
         "📋 На реквизиты: `{req}`\n"
         "🆔 Заявка: `{req_id}`\n\n"
@@ -190,12 +204,8 @@ T["ru"] = {
         "Вопросы: @{support}"
     ),
     "balance_view": (
-        "╔══════════════════════╗\n"
-        "      💰  *МОЙ БАЛАНС*\n"
-        "╚══════════════════════╝\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "{balance_lines}"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        
         "📅 На платформе с: *{joined}*\n"
         "⭐ Рейтинг: *{rating}* / 5.0\n"
         "📊 Завершено сделок: *{dc}*"
@@ -207,16 +217,12 @@ T["ru"] = {
     "bad_amount":  "❌ Неверный формат. Введите число, например: `1500` или `25.5`",
     "min_amount":  "❌ Минимальная сумма: *{min} {cur}*\n\nВведите большую сумму:",
     "deal_created": (
-        "╔══════════════════════╗\n"
-        "    ✅  *СДЕЛКА СОЗДАНА!*\n"
-        "╚══════════════════════╝\n\n"
         "🎁 NFT подарок: *{gift}*\n"
         "💰 Сумма: *{amount} {cur}*\n"
         "💸 Комиссия маркета: *3%*\n"
         "🆔 ID сделки: `{id}`\n"
         "📅 Создана: {date}\n"
         "📌 Статус: 🟡 Ожидает покупателя\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "🔗 *Ссылка для покупателя:*\n"
         "`https://t.me/{bot}?start=deal_{id}`\n\n"
         "📤 Отправьте эту ссылку покупателю."
@@ -233,43 +239,30 @@ T["ru"] = {
     "deal_cancelled":   "✅ Сделка `{id}` отменена.",
     "deal_cancel_fail": "❌ Нельзя отменить — покупатель уже оплатил.\nОбратитесь в поддержку: @{support}",
     "refs": (
-        "╔══════════════════════╗\n"
-        "  👥  *РЕФЕРАЛЬНАЯ ПРОГРАММА*\n"
-        "╚══════════════════════╝\n\n"
         "Приглашайте друзей и зарабатывайте\n"
         "*0.5 USDT* за каждого реферала!\n\n"
         "🔗 *Ваша реферальная ссылка:*\n"
         "`https://t.me/{bot}?start=ref_{uid}`\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "👤 Приглашено: *{count}* чел.\n"
         "💎 Заработано: *{bonus}* USDT\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰"
-    ),
+        ),
     "support": (
-        "╔══════════════════════╗\n"
-        "   💬  *СЛУЖБА ПОДДЕРЖКИ*\n"
-        "╚══════════════════════╝\n\n"
         "Мы работаем *24/7* и готовы помочь!\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "📩 Менеджер: @{support}\n"
         "⏱ Ответ: до 15 минут\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        
         "Или напишите сообщение прямо здесь:"
     ),
     "support_sent": "✅ *Сообщение отправлено!*\n\nМенеджер @{support} ответит в течение 15 минут. 🙏",
     "about": (
-        "╔══════════════════════╗\n"
-        "    ℹ️  *FIDES DEAL MARKET*\n"
-        "╚══════════════════════╝\n\n"
+        "ℹ️ *OTC Market*\n\n"
         "Надёжный способ покупать и продавать\n"
         "NFT‑подарки в Telegram.\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "🔐 *Безопасность:*\n\n"
         "  🔒 Эскроу‑защита каждой сделки\n"
         "  🛡️ Верификация участников\n"
         "  ⭐ Рейтинговая система\n"
         "  ⚖️ Арбитраж за 30 минут\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "📊 *Как проходит сделка:*\n\n"
         "  1️⃣ Продавец создаёт сделку\n"
         "  2️⃣ Делится ссылкой с покупателем\n"
@@ -277,7 +270,6 @@ T["ru"] = {
         "  4️⃣ Продавец передаёт NFT подарок\n"
         "  5️⃣ Покупатель подтверждает получение\n"
         "  6️⃣ ✅ Сделка завершена!\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💬 Поддержка: @{support} | 📌 Версия: 4.0"
     ),
     "lang_pick": "🌐 *Выберите язык интерфейса:*",
@@ -288,16 +280,13 @@ T["ru"] = {
     "s_done":      "✅ Завершена",
     "s_cancelled": "❌ Отменена",
     "buyer_welcome": (
-        "╔══════════════════════╗\n"
-        "    🤝  *FIDES DEAL MARKET*\n"
-        "╚══════════════════════╝\n\n"
+        "🤝 *OTC Market*\n\n"
         "👋 *Добро пожаловать!*\n"
         "Вас пригласили к защищённой сделке.\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "🔐 Все транзакции защищены\n"
         "системой эскроу — ваши средства\n"
         "в полной безопасности.\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        
         "👇 Выберите язык:"
     ),
     "buyer_viewing": (
@@ -307,18 +296,14 @@ T["ru"] = {
         "⏳ Ожидайте оплаты..."
     ),
     "buyer_deal": (
-        "╔══════════════════════╗\n"
-        "  🤝  *ПРЕДЛОЖЕНИЕ О СДЕЛКЕ*\n"
-        "╚══════════════════════╝\n\n"
         "🎁 NFT подарок: *{gift}*\n"
         "💰 Сумма к оплате: *{amount} {cur}*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "👤 Продавец: *{seller}*\n"
         "⭐ Рейтинг: *{rating}* / 5.0\n"
         "📊 Завершено сделок: *{dc}*\n"
         "🆔 ID: `{id}`\n"
         "📌 Статус: 🟡 Ожидает оплаты\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        
         "🔐 *Гарантия безопасности:*\n"
         "После оплаты продавец обязан передать NFT.\n"
         "При проблемах — откройте спор: @{support}"
@@ -327,15 +312,11 @@ T["ru"] = {
     "btn_cancel_deal": "❌ Отменить",
     "btn_dispute":     "⚖️ Открыть спор",
     "buyer_pay_info": (
-        "╔══════════════════════╗\n"
-        "  💳  *РЕКВИЗИТЫ ДЛЯ ОПЛАТЫ*\n"
-        "╚══════════════════════╝\n\n"
         "🎁 Подарок: *{gift}*\n"
         "💰 Сумма к переводу: *{amount} {cur}*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "📋 Реквизиты продавца:\n"
         "`{req}`\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        
         "⚠️ *Важно:*\n"
         "  • Переведите *точную* сумму\n"
         "  • Сохраните чек перевода\n"
@@ -344,65 +325,45 @@ T["ru"] = {
     ),
     "btn_confirm_pay": "✅ Я оплатил — Подтвердить",
     "buyer_paid": (
-        "╔══════════════════════╗\n"
-        "  ⏳  *ОПЛАТА ПОДТВЕРЖДЕНА!*\n"
-        "╚══════════════════════╝\n\n"
         "💰 Сумма: *{amount} {cur}*\n"
         "📌 Статус: 🟠 Ожидание передачи NFT\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "✅ Продавец уведомлён.\n"
         "Как только он отправит NFT —\n"
         "вы получите уведомление.\n\n"
         "⚠️ Не отвечает более 30 минут? @{support}"
     ),
     "seller_notif": (
-        "╔══════════════════════╗\n"
-        " 🔔  *ПОКУПАТЕЛЬ ОПЛАТИЛ!*\n"
-        "╚══════════════════════╝\n\n"
         "🎁 Подарок: *{gift}*\n"
         "💰 Сумма: *{amount} {cur}*\n"
         "👤 Покупатель: *{buyer}*\n"
         "🆔 ID: `{id}`\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "👉 *Передайте NFT подарок и нажмите кнопку:*"
     ),
     "btn_nft_sent": "📦 Я передал NFT подарок",
     "seller_waiting_confirm": (
         "⏳ *Ожидание подтверждения покупателя*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "🎁 {gift}  |  💰 {amount} {cur}\n"
         "📌 Статус: 📦 NFT передан\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        
         "⚠️ Покупатель не отвечает? — @{support}"
     ),
     "buyer_nft_received_prompt": (
-        "╔══════════════════════╗\n"
-        " 📦  *NFT ПОДАРОК ПЕРЕДАН!*\n"
-        "╚══════════════════════╝\n\n"
         "🎁 Подарок: *{gift}*\n"
         "💰 Сумма: *{amount} {cur}*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Проверьте, что NFT подарок получен.\n\n"
         "✅ Всё в порядке — подтвердите получение.\n"
         "⚖️ Подарок не получен — откройте спор."
     ),
     "btn_confirm_receipt": "✅ Подтверждаю — получил NFT",
     "deal_done_seller": (
-        "╔══════════════════════╗\n"
-        "   🎉  *СДЕЛКА ЗАВЕРШЕНА!*\n"
-        "╚══════════════════════╝\n\n"
         "✅ Покупатель подтвердил получение NFT\n"
         "💰 Средства разблокированы\n"
         "📊 Счётчик сделок обновлён\n\n"
-        "Спасибо за использование OTC NFT Market! 💎"
+        "Спасибо за использование OTC Market! 💎"
     ),
     "deal_done_buyer": (
-        "╔══════════════════════╗\n"
-        "   🎉  *СДЕЛКА ЗАВЕРШЕНА!*\n"
-        "╚══════════════════════╝\n\n"
         "✅ Вы подтвердили получение NFT подарка\n"
         "🔐 Эскроу‑защита снята\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "Пожалуйста, оцените продавца:"
     ),
     "review_prompt": "⭐ *Оцените продавца*\n\nВыберите оценку от 1 до 5:",
@@ -444,41 +405,32 @@ T["ru"] = {
     ),
     "deal_detail": (
         "📋 *Детали сделки*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "🆔 ID: `{id}`\n"
         "🎁 Подарок: *{gift}*\n"
         "💰 Сумма: *{amount} {cur}*\n"
         "📌 Статус: {status_icon} {status}\n"
         "📅 Создана: {date}\n"
         "{buyer_line}"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰"
-    ),
+        ),
     "btn_deal_detail": "🔎 Детали",
     "seller_stats": (
-        "╔══════════════════════╗\n"
-        "    📊  *МОЯ СТАТИСТИКА*\n"
-        "╚══════════════════════╝\n\n"
         "📋 Всего сделок: *{total}*\n"
         "✅ Завершено: *{done}*\n"
         "🟡 Активных: *{active}*\n"
         "❌ Отменено: *{cancelled}*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💰 *Оборот по валютам:*\n"
         "{turnover}"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💵 Средний чек: *{avg_deal}*\n"
         "⭐ Рейтинг: *{rating}* / 5.0\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰"
-    ),
+        ),
     "search_deal_prompt": "🔍 *Поиск сделки*\n\nВведите ID сделки (или первые символы):",
     "search_deal_found":  "🔍 *Результаты поиска:*\n\n{result}",
     "search_deal_none":   "❌ Сделка с таким ID не найдена.",
     "btn_search":         "🔍 Найти сделку",
     "fee_choice": (
         "💸 *Кто покрывает комиссию маркета (3%)?*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💰 Базовая сумма: *{amount} {cur}*\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        
         "  • *Покупатель платит комиссию*\n"
         "    Вы получите: *{amount} {cur}*\n"
         "    Покупатель заплатит: *{amount_with_fee} {cur}*\n\n"
@@ -498,11 +450,10 @@ T["ru"] = {
     ),
     "seller_balance_credited": (
         "💰 *Средства зачислены на баланс!*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "✅ Сделка завершена\n"
         "💵 Зачислено: *{amount} {cur}*\n"
         "📊 Итоговый баланс: *{total} {cur}*\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n\n"
+        
         "Для вывода: *Реквизиты → Вывести средства*"
     ),
     "nft_sent_already": "⚠️ NFT уже отмечен как переданный.",
@@ -510,16 +461,12 @@ T["ru"] = {
     "profile_joined": "📅 На платформе с: *{date}*",
     "btn_platform_stats": "🌐 Статистика маркета",
     "platform_stats": (
-        "╔══════════════════════╗\n"
-        "   🌐  *СТАТИСТИКА МАРКЕТА*\n"
-        "╚══════════════════════╝\n\n"
         "📋 Всего сделок: *{total}*\n"
         "✅ Успешно завершено: *{done}*\n"
         "📈 Процент успеха: *{pct}%*\n"
         "⚖️ Споров: *{disputes}*\n"
         "👥 Пользователей: *{users}*\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰"
-    ),
+        ),
     "buyer_timer_alert": (
         "⏰ *Время истекло!*\n\n"
         "Прошло 30 минут с момента вашей оплаты,\n"
@@ -530,47 +477,36 @@ T["ru"] = {
     ),
     "btn_faq": "❓ FAQ",
     "faq": (
-        "╔══════════════════════╗\n"
-        "    ❓  *ЧАСТЫЕ ВОПРОСЫ*\n"
-        "╚══════════════════════╝\n\n"
         "🔐 *Что если продавец не отдаст NFT?*\n"
         "Откройте спор — модератор решит вопрос\n"
         "за 30 минут и вернёт деньги.\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💰 *Как работает эскроу?*\n"
         "Деньги «замораживаются» до момента\n"
         "подтверждения получения NFT.\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "⏱ *Сколько времени на сделку?*\n"
         "Продавец должен передать NFT в течение\n"
         "30 минут после получения оплаты.\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "💸 *Какая комиссия?*\n"
         "3% от суммы сделки.\n\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
         "🛡️ *Как проверить надёжность продавца?*\n"
         "Смотрите рейтинг ⭐ и число сделок.\n"
         "Чем выше — тем надёжнее.\n"
-        "▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰"
-    ),
+        ),
 }
 # ── Ukrainian ────────────────────────────────────────
 T["uk"] = {
     "welcome": (
-        "💎 *Fides Deal Market*\n\n"
-        "Ласкаво просимо до *Fides Deal* —\n"
-        "безпечні угоди з гарантією!\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🛡️ *Захист від шахраїв*\n"
-        "💰 *Автоматичне утримання коштів*\n"
-        "📊 *Прозора статистика*\n"
-        "💬 *Підтримка 24/7*\n"
-        "📜 *Історія угод*\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "Ласкаво просимо до Bloosy Market\n\n"
+        "Безпечні угоди з гарантією\n\n"
+        "🛡️ Захист від шахраїв\n"
+        "💰 Автоматичне утримання коштів\n"
+        "📝 Прозора статистика\n"
+        "🎯 Підтримка 24/7\n"
+        "📊 Історія угод\n\n"
         "👇 Оберіть мову:"
     ),
     "blocked": "⛔ *Акаунт заблоковано*\n\nЗверніться до підтримки: @{support}",
-    "menu": "🏠 *OTC NFT Market*\n\n👤 *{name}*\n⭐ Рейтинг: *{rating}* / 5.0  |  📊 Угод: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\nОберіть дію:",
+    "menu": "🏠 *OTC Market*\n\n👤 *{name}*\n⭐ Рейтинг: *{rating}* / 5.0  |  📊 Угод: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\nОберіть дію:",
     "btn_create": "➕ Створити угоду", "btn_deals": "📂 Мої угоди", "btn_refs": "👥 Реферали",
     "btn_req": "💳 Реквізити", "btn_lang": "🌐 Мова", "btn_support": "💬 Підтримка",
     "btn_about": "ℹ️ Про маркет", "btn_stats": "📊 Статистика",
@@ -590,9 +526,9 @@ T["uk"] = {
     "deal_cancelled": "✅ Угоду `{id}` скасовано.",
     "deal_cancel_fail": "❌ Не можна скасувати — покупець вже оплатив.\n@{support}",
     "refs": "👥 *Реферали*\n\n🔗 `https://t.me/{bot}?start=ref_{uid}`\n\n👤 Запрошено: *{count}*\n💎 Зароблено: *{bonus}* USDT",
-    "support": "💬 *Підтримка OTC NFT Market*\n\n📩 @{support}\n⏱ До 15 хвилин\n\nАбо напишіть тут:",
+    "support": "💬 *Підтримка OTC Market*\n\n📩 @{support}\n⏱ До 15 хвилин\n\nАбо напишіть тут:",
     "support_sent": "✅ Надіслано! @{support} відповість протягом 15 хвилин. 🙏",
-    "about": "ℹ️ *OTC NFT Market*\n\nНайнадійніший майданчик для торгівлі NFT подарунками.\n\n🔐 Ескроу‑захист\n🛡️ Верифікація\n⭐ Рейтинги\n⚖️ Арбітраж\n\n💬 @{support}",
+    "about": "ℹ️ *OTC Market*\n\nНайнадійніший майданчик для торгівлі NFT подарунками.\n\n🔐 Ескроу‑захист\n🛡️ Верифікація\n⭐ Рейтинги\n⚖️ Арбітраж\n\n💬 @{support}",
     "lang_pick": "🌐 *Оберіть мову:*", "back": "⬅️ Назад",
     "s_active": "🟡 Очікує", "s_paid": "🟠 Оплачено", "s_nft_sent": "📦 NFT відправлено",
     "s_done": "✅ Завершено", "s_cancelled": "❌ Скасовано",
@@ -626,29 +562,33 @@ T["uk"] = {
     "admin_granted": "🔐 *Права адміністратора активовано*",
     "profile_joined": "📅 На платформі з: *{date}*",
     "btn_platform_stats": "🌐 Статистика маркету",
-    "platform_stats": "🌐 *Статистика Fides Deal*\n\n━━━━━━━━━━━━━━━━━━━━━━\n📋 Всього угод: *{total}*\n✅ Завершено: *{done}*\n📈 Успішність: *{pct}%*\n⚖️ Спорів: *{disputes}*\n👥 Користувачів: *{users}*\n━━━━━━━━━━━━━━━━━━━━━━",
+    "platform_stats": "🌐 *Статистика OTC Market*\n\n━━━━━━━━━━━━━━━━━━━━━━\n📋 Всього угод: *{total}*\n✅ Завершено: *{done}*\n📈 Успішність: *{pct}%*\n⚖️ Спорів: *{disputes}*\n👥 Користувачів: *{users}*\n━━━━━━━━━━━━━━━━━━━━━━",
     "buyer_timer_alert": "⏰ *Час вийшов!*\n\n30 хвилин минуло, але продавець ще не передав NFT.\n\n🆔 `{id}`\n🎁 {gift}  |  💰 {amount} {cur}\n\n👇 Відкрийте спір:",
     "btn_faq": "❓ FAQ",
+    "buyer_timer_alert": (
+        "⏰ *Час вийшов!*\n\n"
+        "Минуло 30 хвилин, але продавець ще не передав NFT.\n\n"
+        "🆔 `{id}`\n"
+        "🎁 {gift}  |  💰 {amount} {cur}\n\n"
+        "👇 Відкрийте спір:"
+    ),
     "faq": "❓ *Часті запитання*\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 *Якщо продавець не передасть NFT?*\nВідкрийте спір — модератор вирішить за 30 хвилин.\n\n💰 *Як працює ескроу?*\nКошти заморожуються до підтвердження отримання NFT.\n\n⏱ *Скільки часу на угоду?*\nПродавець повинен передати NFT протягом 30 хвилин.\n\n💸 *Яка комісія?*\n3% від суми. Ви обираєте хто платить.\n━━━━━━━━━━━━━━━━━━━━━━",
 }
 
 # ── English ──────────────────────────────────────────
 T["en"] = {
     "welcome": (
-        "💎 *Fides Deal Market*\n\n"
-        "Welcome to *Fides Deal* —\n"
-        "secure deals with guarantee!\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🛡️ *Fraud protection*\n"
-        "💰 *Automatic fund holding*\n"
-        "📊 *Transparent statistics*\n"
-        "💬 *24/7 support*\n"
-        "📜 *Deal history*\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "Welcome to Bloosy Market\n\n"
+        "Secure deals with guarantee\n\n"
+        "🛡️ Fraud protection\n"
+        "💰 Automatic fund holding\n"
+        "📝 Transparent statistics\n"
+        "🎯 Support 24/7\n"
+        "📊 Deal history\n\n"
         "👇 Choose your language:"
     ),
     "blocked": "⛔ *Account blocked*\n\nContact support: @{support}",
-    "menu": "🏠 *OTC NFT Market*\n\n👤 *{name}*\n⭐ Rating: *{rating}* / 5.0  |  📊 Deals: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\nChoose an action:",
+    "menu": "🏠 *OTC Market*\n\n👤 *{name}*\n⭐ Rating: *{rating}* / 5.0  |  📊 Deals: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\nChoose an action:",
     "btn_create": "➕ Create Deal", "btn_deals": "📂 My Deals", "btn_refs": "👥 Referrals",
     "btn_req": "💳 Requisites", "btn_lang": "🌐 Language", "btn_support": "💬 Support",
     "btn_about": "ℹ️ About", "btn_stats": "📊 Statistics",
@@ -668,13 +608,13 @@ T["en"] = {
     "deal_cancelled": "✅ Deal `{id}` cancelled.",
     "deal_cancel_fail": "❌ Cannot cancel — buyer already paid.\n@{support}",
     "refs": "👥 *Referrals*\n\n🔗 `https://t.me/{bot}?start=ref_{uid}`\n\n👤 Invited: *{count}*\n💎 Earned: *{bonus}* USDT",
-    "support": "💬 *OTC NFT Market Support*\n\n📩 @{support}\n⏱ Up to 15 minutes\n\nOr message here:",
+    "support": "💬 *OTC Market Support*\n\n📩 @{support}\n⏱ Up to 15 minutes\n\nOr message here:",
     "support_sent": "✅ Sent! @{support} will reply within 15 minutes. 🙏",
-    "about": "ℹ️ *OTC NFT Market*\n\nThe safest NFT gift trading platform.\n\n🔐 Escrow\n🛡️ Verification\n⭐ Ratings\n⚖️ Arbitration\n\n💬 @{support}",
+    "about": "ℹ️ *OTC Market*\n\nThe safest NFT gift trading platform.\n\n🔐 Escrow\n🛡️ Verification\n⭐ Ratings\n⚖️ Arbitration\n\n💬 @{support}",
     "lang_pick": "🌐 *Choose language:*", "back": "⬅️ Back",
     "s_active": "🟡 Pending", "s_paid": "🟠 Paid", "s_nft_sent": "📦 NFT Sent",
     "s_done": "✅ Done", "s_cancelled": "❌ Cancelled",
-    "buyer_welcome": "👋 *Welcome to OTC NFT Market!*\n\nYou've been invited to a secured deal.\n\n🔐 Escrow protection.\n\n👇 Choose language:",
+    "buyer_welcome": "👋 *Welcome to OTC Market!*\n\nYou've been invited to a secured deal.\n\n🔐 Escrow protection.\n\n👇 Choose language:",
     "buyer_viewing": "👁 *Buyer is viewing your deal*\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n⏳ Awaiting payment...",
     "buyer_deal": "🤝 *Deal Offer*\n\n━━━━━━━━━━━━━━━━━━━━━━\n🎁 *{gift}*\n💰 {amount} {cur}\n👤 Seller: *{seller}*\n⭐ Rating: *{rating}*\n📊 Deals: *{dc}*\n🆔 `{id}`\n━━━━━━━━━━━━━━━━━━━━━━\n\n🔐 Funds held in escrow until NFT transferred.",
     "btn_pay": "💳 Proceed to Payment", "btn_cancel_deal": "❌ Cancel", "btn_dispute": "⚖️ Open Dispute",
@@ -705,7 +645,7 @@ T["en"] = {
     "profile_joined": "📅 On platform since: *{date}*",
     "btn_platform_stats": "🌐 Market Stats",
     "platform_stats": (
-        "🌐 *Fides Deal Market Statistics*\n\n"
+        "🌐 *OTC Market Statistics*\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         "📋 Total deals: *{total}*\n"
         "✅ Completed: *{done}*\n"
@@ -743,13 +683,20 @@ T["en"] = {
         "Higher = more trustworthy.\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━"
     ),
+    "buyer_timer_alert": (
+        "⏰ *Time is up!*\n\n"
+        "30 minutes have passed but the seller hasn't sent the NFT.\n\n"
+        "🆔 `{id}`\n"
+        "🎁 {gift}  |  💰 {amount} {cur}\n\n"
+        "👇 We recommend opening a dispute:"
+    ),
 }
 
 # ── Arabic ──────────────────────────────────────────
 T["ar"] = {
-    "welcome": "💎 *OTC NFT Market*\n\nمرحباً بك في أكثر منصة آمانًا لتداول هدايا NFT!\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 حماية الضمان لكل صفقة\n⚡️ إشعارات فورية\n🛡️ التحقق من المستخدمين\n🌍 6 عملات\n💬 دعم 24/7\n⚖️ حل النزاعات\n━━━━━━━━━━━━━━━━━━━━━━\n\n👇 اختر لغتك:",
+    "welcome": "💎 *OTC Market*\n\nمرحباً بك في أكثر منصة آمانًا لتداول هدايا NFT!\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 حماية الضمان لكل صفقة\n⚡️ إشعارات فورية\n🛡️ التحقق من المستخدمين\n🌍 6 عملات\n💬 دعم 24/7\n⚖️ حل النزاعات\n━━━━━━━━━━━━━━━━━━━━━━\n\n👇 اختر لغتك:",
     "blocked": "⛔ *تم حظر حسابك*\n\nتواصل مع الدعم: @{support}",
-    "menu": "🏠 *OTC NFT Market*\n\n👤 *{name}*\n⭐ التقييم: *{rating}* / 5.0  |  📊 الصفقات: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\nاختر إجراءً:",
+    "menu": "🏠 *OTC Market*\n\n👤 *{name}*\n⭐ التقييم: *{rating}* / 5.0  |  📊 الصفقات: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\nاختر إجراءً:",
     "btn_create": "➕ إنشاء صفقة", "btn_deals": "📂 صفقاتي", "btn_refs": "👥 الإحالات",
     "btn_req": "💳 بيانات الدفع", "btn_lang": "🌐 اللغة", "btn_support": "💬 الدعم",
     "btn_about": "ℹ️ عن المنصة", "btn_stats": "📊 الإحصاء",
@@ -769,13 +716,13 @@ T["ar"] = {
     "deal_cancelled": "✅ تم إلغاء الصفقة `{id}`.",
     "deal_cancel_fail": "❌ لا يمكن الإلغاء — دفع المشتري بالفعل.\n@{support}",
     "refs": "👥 *الإحالات*\n\n🔗 `https://t.me/{bot}?start=ref_{uid}`\n\n👤 المدعوون: *{count}*\n💎 الأرباح: *{bonus}* USDT",
-    "support": "💬 *دعم OTC NFT Market*\n\n📩 @{support}\n⏱ حتى 15 دقيقة\n\nأو اكتب هنا:",
+    "support": "💬 *دعم OTC Market*\n\n📩 @{support}\n⏱ حتى 15 دقيقة\n\nأو اكتب هنا:",
     "support_sent": "✅ تم الإرسال! سيرد @{support} خلال 15 دقيقة. 🙏",
-    "about": "ℹ️ *OTC NFT Market*\n\nأكثر منصة موثوقة لتداول هدايا NFT.\n\n🔐 الضمان\n🛡️ التحقق\n⭐ التقييمات\n⚖️ التحكيم\n\n💬 @{support}",
+    "about": "ℹ️ *OTC Market*\n\nأكثر منصة موثوقة لتداول هدايا NFT.\n\n🔐 الضمان\n🛡️ التحقق\n⭐ التقييمات\n⚖️ التحكيم\n\n💬 @{support}",
     "lang_pick": "🌐 *اختر اللغة:*", "back": "⬅️ رجوع",
     "s_active": "🟡 انتظار", "s_paid": "🟠 مدفوع", "s_nft_sent": "📦 NFT أُرسل",
     "s_done": "✅ مكتمل", "s_cancelled": "❌ ملغى",
-    "buyer_welcome": "👋 *مرحباً بك في OTC NFT Market!*\n\nتمت دعوتك للمشاركة في صفقة محمية.\n\n🔐 حماية الضمان.\n\n👇 اختر اللغة:",
+    "buyer_welcome": "👋 *مرحباً بك في OTC Market!*\n\nتمت دعوتك للمشاركة في صفقة محمية.\n\n🔐 حماية الضمان.\n\n👇 اختر اللغة:",
     "buyer_viewing": "👁 *المشتري يشاهد صفقتك*\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n⏳ انتظر الدفع...",
     "buyer_deal": "🤝 *عرض صفقة*\n\n━━━━━━━━━━━━━━━━━━━━━━\n🎁 *{gift}*\n💰 {amount} {cur}\n👤 البائع: *{seller}*\n⭐ التقييم: *{rating}*\n📊 الصفقات: *{dc}*\n🆔 `{id}`\n━━━━━━━━━━━━━━━━━━━━━━\n\n🔐 الأموال محمية حتى نقل NFT.",
     "btn_pay": "💳 الدفع", "btn_cancel_deal": "❌ إلغاء", "btn_dispute": "⚖️ فتح نزاع",
@@ -803,13 +750,14 @@ T["ar"] = {
     "fee_choice": "💸 *من يدفع العمولة (3%)?*\n\n💰 المبلغ: *{amount} {cur}*\n\n• المشتري يدفع: {amount_with_fee} {cur}\n• أنت تحصل على: {amount_after_fee} {cur}\n\nاختر:",
     "btn_fee_buyer": "👤 المشتري يدفع العمولة", "btn_fee_seller": "🏪 أنا أدفع العمولة",
     "admin_granted": "🔐 *تم تفعيل صلاحيات المسؤول*",
+    "buyer_timer_alert": "⏰ انتهى الوقت! مرت 30 دقيقة والبائع لم يرسل NFT بعد.\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n👇 افتح نزاعاً:",
 }
 
 # ── Chinese ──────────────────────────────────────────
 T["zh"] = {
-    "welcome": "💎 *OTC NFT Market*\n\n欢迎使用最安全的NFT礼品交易平台！\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 每笔交易的托管保护\n⚡️ 实时通知\n🛡️ 用户验证\n🌍 6种货币\n💬 24/7支持\n⚖️ 争议仲裁\n━━━━━━━━━━━━━━━━━━━━━━\n\n👇 选择语言:",
+    "welcome": "💎 *OTC Market*\n\n欢迎使用最安全的NFT礼品交易平台！\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 每笔交易的托管保护\n⚡️ 实时通知\n🛡️ 用户验证\n🌍 6种货币\n💬 24/7支持\n⚖️ 争议仲裁\n━━━━━━━━━━━━━━━━━━━━━━\n\n👇 选择语言:",
     "blocked": "⛔ *账号已封禁*\n\n联系客服: @{support}",
-    "menu": "🏠 *OTC NFT Market*\n\n👤 *{name}*\n⭐ 评分: *{rating}* / 5.0  |  📊 交易: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\n选择操作:",
+    "menu": "🏠 *OTC Market*\n\n👤 *{name}*\n⭐ 评分: *{rating}* / 5.0  |  📊 交易: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\n选择操作:",
     "btn_create": "➕ 创建交易", "btn_deals": "📂 我的交易", "btn_refs": "👥 推荐",
     "btn_req": "💳 收款信息", "btn_lang": "🌐 语言", "btn_support": "💬 客服",
     "btn_about": "ℹ️ 关于", "btn_stats": "📊 统计",
@@ -829,13 +777,13 @@ T["zh"] = {
     "deal_cancelled": "✅ 交易 `{id}` 已取消。",
     "deal_cancel_fail": "❌ 无法取消 — 买家已付款。\n@{support}",
     "refs": "👥 *推荐计划*\n\n🔗 `https://t.me/{bot}?start=ref_{uid}`\n\n👤 已邀请: *{count}*\n💎 已获得: *{bonus}* USDT",
-    "support": "💬 *OTC NFT Market 客服*\n\n📩 @{support}\n⏱ 15分钟内回复\n\n或在此留言:",
+    "support": "💬 *OTC Market 客服*\n\n📩 @{support}\n⏱ 15分钟内回复\n\n或在此留言:",
     "support_sent": "✅ 已发送! @{support} 将在15分钟内回复。🙏",
-    "about": "ℹ️ *OTC NFT Market*\n\n最可靠的NFT礼品交易平台。\n\n🔐 托管保护\n🛡️ 身份验证\n⭐ 评分系统\n⚖️ 争议仲裁\n\n💬 @{support}",
+    "about": "ℹ️ *OTC Market*\n\n最可靠的NFT礼品交易平台。\n\n🔐 托管保护\n🛡️ 身份验证\n⭐ 评分系统\n⚖️ 争议仲裁\n\n💬 @{support}",
     "lang_pick": "🌐 *选择语言:*", "back": "⬅️ 返回",
     "s_active": "🟡 等待中", "s_paid": "🟠 已付款", "s_nft_sent": "📦 NFT已发送",
     "s_done": "✅ 已完成", "s_cancelled": "❌ 已取消",
-    "buyer_welcome": "👋 *欢迎来到OTC NFT Market!*\n\n您已被邀请参与一笔受保护的交易。\n\n🔐 托管保护。\n\n👇 选择语言:",
+    "buyer_welcome": "👋 *欢迎来到OTC Market!*\n\n您已被邀请参与一笔受保护的交易。\n\n🔐 托管保护。\n\n👇 选择语言:",
     "buyer_viewing": "👁 *买家正在查看您的交易*\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n⏳ 等待付款...",
     "buyer_deal": "🤝 *交易邀请*\n\n━━━━━━━━━━━━━━━━━━━━━━\n🎁 *{gift}*\n💰 {amount} {cur}\n👤 卖家: *{seller}*\n⭐ 评分: *{rating}*\n📊 交易数: *{dc}*\n🆔 `{id}`\n━━━━━━━━━━━━━━━━━━━━━━\n\n🔐 资金托管直到NFT转让。",
     "btn_pay": "💳 去付款", "btn_cancel_deal": "❌ 取消", "btn_dispute": "⚖️ 开启争议",
@@ -863,13 +811,14 @@ T["zh"] = {
     "fee_choice": "💸 *谁支付手续费 (3%)?*\n\n💰 金额: *{amount} {cur}*\n\n• 买家支付: {amount_with_fee} {cur}\n• 您收到: {amount_after_fee} {cur}\n\n选择:",
     "btn_fee_buyer": "👤 买家支付手续费", "btn_fee_seller": "🏪 我支付手续费",
     "admin_granted": "🔐 *管理员权限已激活*",
+    "buyer_timer_alert": "⏰ 时间到！已过30分钟，卖家尚未发送NFT。\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n👇 建议发起争议:",
 }
 
 # ── Japanese ─────────────────────────────────────────
 T["ja"] = {
-    "welcome": "💎 *OTC NFT Market*\n\n最も安全なNFTギフト取引プラットフォームへようこそ！\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 全取引のエスクロー保護\n⚡️ リアルタイム通知\n🛡️ ユーザー認証\n🌍 6通貨対応\n💬 24時間サポート\n⚖️ 紛争仲裁\n━━━━━━━━━━━━━━━━━━━━━━\n\n👇 言語を選択:",
+    "welcome": "💎 *OTC Market*\n\n最も安全なNFTギフト取引プラットフォームへようこそ！\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 全取引のエスクロー保護\n⚡️ リアルタイム通知\n🛡️ ユーザー認証\n🌍 6通貨対応\n💬 24時間サポート\n⚖️ 紛争仲裁\n━━━━━━━━━━━━━━━━━━━━━━\n\n👇 言語を選択:",
     "blocked": "⛔ *アカウントが停止されました*\n\nサポートへ: @{support}",
-    "menu": "🏠 *OTC NFT Market*\n\n👤 *{name}*\n⭐ 評価: *{rating}* / 5.0  |  📊 取引: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\n操作を選択:",
+    "menu": "🏠 *OTC Market*\n\n👤 *{name}*\n⭐ 評価: *{rating}* / 5.0  |  📊 取引: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\n操作を選択:",
     "btn_create": "➕ 取引作成", "btn_deals": "📂 取引一覧", "btn_refs": "👥 紹介",
     "btn_req": "💳 支払情報", "btn_lang": "🌐 言語", "btn_support": "💬 サポート",
     "btn_about": "ℹ️ について", "btn_stats": "📊 統計",
@@ -889,13 +838,13 @@ T["ja"] = {
     "deal_cancelled": "✅ 取引 `{id}` をキャンセルしました。",
     "deal_cancel_fail": "❌ キャンセル不可 — 購入者が支払済み。\n@{support}",
     "refs": "👥 *紹介プログラム*\n\n🔗 `https://t.me/{bot}?start=ref_{uid}`\n\n👤 招待済み: *{count}*\n💎 獲得: *{bonus}* USDT",
-    "support": "💬 *OTC NFT Market サポート*\n\n📩 @{support}\n⏱ 15分以内に返信\n\nまたはここに書いてください:",
+    "support": "💬 *OTC Market サポート*\n\n📩 @{support}\n⏱ 15分以内に返信\n\nまたはここに書いてください:",
     "support_sent": "✅ 送信完了! @{support} が15分以内に返信します。🙏",
-    "about": "ℹ️ *OTC NFT Market*\n\n最も信頼性の高いNFTギフト取引プラットフォーム。\n\n🔐 エスクロー\n🛡️ 認証\n⭐ 評価\n⚖️ 仲裁\n\n💬 @{support}",
+    "about": "ℹ️ *OTC Market*\n\n最も信頼性の高いNFTギフト取引プラットフォーム。\n\n🔐 エスクロー\n🛡️ 認証\n⭐ 評価\n⚖️ 仲裁\n\n💬 @{support}",
     "lang_pick": "🌐 *言語を選択:*", "back": "⬅️ 戻る",
     "s_active": "🟡 待機中", "s_paid": "🟠 支払済", "s_nft_sent": "📦 NFT送信済",
     "s_done": "✅ 完了", "s_cancelled": "❌ キャンセル",
-    "buyer_welcome": "👋 *OTC NFT Marketへようこそ!*\n\n保護された取引に招待されました。\n\n🔐 エスクロー保護。\n\n👇 言語を選択:",
+    "buyer_welcome": "👋 *OTC Marketへようこそ!*\n\n保護された取引に招待されました。\n\n🔐 エスクロー保護。\n\n👇 言語を選択:",
     "buyer_viewing": "👁 *購入者があなたの取引を確認中*\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n⏳ 支払待ち...",
     "buyer_deal": "🤝 *取引オファー*\n\n━━━━━━━━━━━━━━━━━━━━━━\n🎁 *{gift}*\n💰 {amount} {cur}\n👤 販売者: *{seller}*\n⭐ 評価: *{rating}*\n📊 取引数: *{dc}*\n🆔 `{id}`\n━━━━━━━━━━━━━━━━━━━━━━\n\n🔐 NFT転送まで資金はエスクロー保護。",
     "btn_pay": "💳 支払へ", "btn_cancel_deal": "❌ キャンセル", "btn_dispute": "⚖️ 紛争開始",
@@ -923,6 +872,7 @@ T["ja"] = {
     "fee_choice": "💸 *手数料 (3%) を誰が払う?*\n\n💰 金額: *{amount} {cur}*\n\n• 購入者が払う: {amount_with_fee} {cur}\n• あなたが受取: {amount_after_fee} {cur}\n\n選択:",
     "btn_fee_buyer": "👤 購入者が手数料を払う", "btn_fee_seller": "🏪 私が手数料を払う",
     "admin_granted": "🔐 *管理者権限が有効化されました*",
+    "buyer_timer_alert": "⏰ 時間切れ！30分が経過しましたが、売り手はまだNFTを送っていません。\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n👇 異議申し立てを開始:",
 }
 
 
@@ -1052,7 +1002,7 @@ async def adm_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         dc = sum(1 for dl in deals.values() if dl["status"] == "done")
         cc = sum(1 for dl in deals.values() if dl["status"] == "cancelled")
         await q.edit_message_text(
-            f"📊 *Статистика OTC NFT Market*\n\n"
+            f"📊 *Статистика OTC Market*\n\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
             f"👥 Пользователей: *{len(users)}*\n"
             f"🚫 Заблокировано: *{len(blocked_users)}*\n"
@@ -1076,7 +1026,7 @@ async def adm_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         kb = []
         for did, dl in active_deals[:15]:
             kb.append([InlineKeyboardButton(
-                f"🟡 #{did[:8]} — {dl['gift']} | {dl['amount']} {dl['currency']}",
+                f"🟡 #{did[:6]} — {dl['gift']} | {dl['amount']} {dl['currency']}",
                 callback_data=f"adm_dopay_{did}"
             )])
         kb.append([InlineKeyboardButton("⬅️ Назад", callback_data="adm_back")])
@@ -1098,6 +1048,7 @@ async def adm_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         deal["status"]     = "paid"
         deal["buyer_id"]   = None
         deal["buyer_name"] = "Покупатель"
+        save_data()
         sl = get_user(deal["seller_id"]).get("lang","ru")
         try:
             await ctx.bot.send_message(
@@ -1105,7 +1056,7 @@ async def adm_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 text=tr_raw(sl,"seller_notif",
                             gift=deal["gift"], amount=deal["amount"],
                             cur=CURRENCIES.get(deal["currency"],deal["currency"]),
-                            buyer=deal["buyer_name"], id=did[:8]),
+                            buyer=deal["buyer_name"], id=did[:6]),
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton(tr_raw(sl,"btn_nft_sent"), callback_data=f"nftsent_{did}")
                 ]]),
@@ -1114,7 +1065,7 @@ async def adm_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"adm_dopay error: {e}")
         await q.edit_message_text(
-            f"✅ Оплата подтверждена!\n\n🆔 `{did[:8]}`\nПродавец уведомлён.",
+            f"✅ Оплата подтверждена!\n\n🆔 `{did[:6]}`\nПродавец уведомлён.",
             reply_markup=back_adm, parse_mode="Markdown"
         )
 
@@ -1152,7 +1103,7 @@ async def adm_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return
         txt = "📋 *Все сделки:*\n\n"
         for did, dl in list(deals.items())[:20]:
-            txt += f"{status_icon(dl['status'])} `{did[:8]}` {dl['gift']} | {dl['amount']} {dl['currency']}\n"
+            txt += f"{status_icon(dl['status'])} `{did[:6]}` {dl['gift']} | {dl['amount']} {dl['currency']}\n"
         await q.edit_message_text(txt, reply_markup=back_adm, parse_mode="Markdown")
 
     elif d == "adm_back":
@@ -1233,94 +1184,23 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(T["en"]["buyer_welcome"], reply_markup=lang_kb(), parse_mode="Markdown")
         return LANG_ST
 
-    # ── Animated welcome ──────────────────────────
+    # ── Welcome screen ────────────────────────────
     ctx.user_data["flow"] = "seller"
 
-    import asyncio
-
-    # ── Баннер при старте ─────────────────────────
-    # Шаг 1: Отправь картинку боту командой /getbannerid (см. ниже)
-    # Шаг 2: Вставь полученный file_id сюда:
-    BANNER_FILE_ID = ""   # ← вставь file_id своей картинки сюда
-    BANNER_CAPTION = (
-        "◇ ──────────────────── ◇\n"
-        "        💎  *OTC NFT MARKET*  💎\n"
-        "◇ ──────────────────── ◇\n\n"
-        "Надёжная площадка для торговли\n"
-        "NFT‑подарками в Telegram"
-    )
-    if BANNER_FILE_ID:
+    WELCOME_PHOTO_ID = "AgACAgIAAxkBAAN5aamCWMzuOFUH5g8R4PAXom2OtwEAAiAWaxukIlBJZrKdZbXWiEoBAAMCAAN3AAM6BA"
+    if WELCOME_PHOTO_ID:
         try:
             await update.message.reply_photo(
-                photo=BANNER_FILE_ID,
-                caption=BANNER_CAPTION,
+                photo=WELCOME_PHOTO_ID,
+                caption=T["ru"]["welcome"],
+                reply_markup=lang_kb(),
                 parse_mode="Markdown"
             )
+            return LANG_ST
         except Exception:
             pass
 
-    loading_msg = await update.message.reply_text(
-        "╔══════════════════════╗\n"
-        "       💎  *FIDES DEAL MARKET*\n"
-        "╚══════════════════════╝\n\n"
-        "⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛\n"
-        "🔄 *Загружаем платформу...*",
-        parse_mode="Markdown"
-    )
-
-    await asyncio.sleep(0.7)
-    await loading_msg.edit_text(
-        "╔══════════════════════╗\n"
-        "       💎  *FIDES DEAL MARKET*\n"
-        "╚══════════════════════╝\n\n"
-        "🟩⬛⬛⬛⬛⬛⬛⬛⬛⬛\n"
-        "🛡️ *Проверяем защиту...*",
-        parse_mode="Markdown"
-    )
-
-    await asyncio.sleep(0.6)
-    await loading_msg.edit_text(
-        "╔══════════════════════╗\n"
-        "       💎  *FIDES DEAL MARKET*\n"
-        "╚══════════════════════╝\n\n"
-        "🟩🟩🟩⬛⬛⬛⬛⬛⬛⬛\n"
-        "🔐 *Активируем эскроу...*",
-        parse_mode="Markdown"
-    )
-
-    await asyncio.sleep(0.6)
-    await loading_msg.edit_text(
-        "╔══════════════════════╗\n"
-        "       💎  *FIDES DEAL MARKET*\n"
-        "╚══════════════════════╝\n\n"
-        "🟩🟩🟩🟩🟩⬛⬛⬛⬛⬛\n"
-        "💰 *Проверяем кошельки...*",
-        parse_mode="Markdown"
-    )
-
-    await asyncio.sleep(0.6)
-    await loading_msg.edit_text(
-        "╔══════════════════════╗\n"
-        "       💎  *FIDES DEAL MARKET*\n"
-        "╚══════════════════════╝\n\n"
-        "🟩🟩🟩🟩🟩🟩🟩⬛⬛⬛\n"
-        "⚡️ *Подключаем уведомления...*",
-        parse_mode="Markdown"
-    )
-
-    await asyncio.sleep(0.6)
-    await loading_msg.edit_text(
-        "╔══════════════════════╗\n"
-        "       💎  *FIDES DEAL MARKET*\n"
-        "╚══════════════════════╝\n\n"
-        "🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩\n"
-        "✅ *Готово! Добро пожаловать!*",
-        parse_mode="Markdown"
-    )
-
-    await asyncio.sleep(0.5)
-
-    await loading_msg.edit_text(
+    await update.message.reply_text(
         T["ru"]["welcome"],
         reply_markup=lang_kb(),
         parse_mode="Markdown"
@@ -1384,7 +1264,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                    cur=CURRENCIES.get(deal["currency"],deal["currency"]),
                    seller=deal["seller_name"],
                    rating=su.get("rating",5.0), dc=su.get("deals_count",0),
-                   id=did[:8]),
+                   id=did[:6]),
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton(tr(ctx,"btn_pay"),         callback_data=f"pay_{did}")],
                     [InlineKeyboardButton(tr(ctx,"btn_dispute"),     callback_data=f"dispute_{did}")],
@@ -1397,7 +1277,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 await ctx.bot.send_message(
                     chat_id=deal["seller_id"],
                     text=tr_raw(sl,"buyer_viewing",
-                                id=did[:8], gift=deal["gift"],
+                                id=did[:6], gift=deal["gift"],
                                 amount=deal["amount"],
                                 cur=CURRENCIES.get(deal["currency"],deal["currency"])),
                     parse_mode="Markdown"
@@ -1492,13 +1372,13 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 dl = deals.get(did)
                 if dl:
                     rows += tr(ctx,"deal_row", icon=status_icon(dl["status"]),
-                               id=did[:8], gift=dl["gift"], amount=dl["amount"], cur=dl["currency"])
+                               id=did[:6], gift=dl["gift"], amount=dl["amount"], cur=dl["currency"])
                     if dl["status"] == "active":
                         active_deals_kb.append([InlineKeyboardButton(
-                            f"🗑 Отменить #{did[:8]}", callback_data=f"cancel_deal_{did}"
+                            f"🗑 Отменить #{did[:6]}", callback_data=f"cancel_deal_{did}"
                         )])
                     detail_kb.append([InlineKeyboardButton(
-                        f"🔎 #{did[:8]} {dl['gift'][:15]}", callback_data=f"detail_{did}"
+                        f"🔎 #{did[:6]} {dl['gift'][:15]}", callback_data=f"detail_{did}"
                     )])
             seller_section = "📤 *Мои продажи:*\n" + rows
         else:
@@ -1540,7 +1420,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await q.answer("❌ Это не ваша сделка", show_alert=True)
             return MENU_ST
         await q.edit_message_text(
-            tr(ctx,"deal_cancel_confirm", id=did[:8], gift=deal["gift"],
+            tr(ctx,"deal_cancel_confirm", id=did[:6], gift=deal["gift"],
                amount=deal["amount"], cur=deal["currency"]),
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("✅ Да, отменить", callback_data=f"confirm_cancel_{did}"),
@@ -1558,7 +1438,8 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 await q.edit_message_text(tr(ctx,"deal_cancel_fail"), reply_markup=back_kb(ctx,"mydeals"), parse_mode="Markdown")
             else:
                 deal["status"] = "cancelled"
-                await q.edit_message_text(tr(ctx,"deal_cancelled", id=did[:8]), reply_markup=back_kb(ctx,"mydeals"), parse_mode="Markdown")
+                save_data()
+                await q.edit_message_text(tr(ctx,"deal_cancelled", id=did[:6]), reply_markup=back_kb(ctx,"mydeals"), parse_mode="Markdown")
         return MENU_ST
 
     # ── Referrals ─────────────────────────────────
@@ -1795,7 +1676,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         snames     = {"active":"Ожидает","paid":"Оплачено","nft_sent":"NFT отправлен","done":"Завершена","cancelled":"Отменена"}
         buyer_line = f"👤 Покупатель: *{deal['buyer_name']}*\n" if deal.get("buyer_name") else ""
         await q.edit_message_text(
-            tr(ctx,"deal_detail", id=did[:8], gift=deal["gift"],
+            tr(ctx,"deal_detail", id=did[:6], gift=deal["gift"],
                amount=deal["amount"], cur=CURRENCIES.get(deal["currency"],deal["currency"]),
                status_icon=status_icon(deal["status"]),
                status=snames.get(deal["status"],deal["status"]),
@@ -1835,6 +1716,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await q.answer("⚠️ Сделка уже открыта другим покупателем.\nПопробуйте через минуту.", show_alert=True)
             return BUYER_ST
         deal["locked_by"]  = uid
+        deal["lock_time"]  = datetime.now().strftime("%d.%m.%Y %H:%M")
         req                = get_user(deal["seller_id"])["req"].get(deal["currency"],"—")
         if req == "—":
             await q.answer("⚠️ Продавец не указал реквизиты для этой валюты.", show_alert=True)
@@ -1903,6 +1785,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         u.setdefault("buyer_deals",[])
         if did not in u["buyer_deals"]:
             u["buyer_deals"].append(did)
+        save_data()
 
         await q.edit_message_text(
             tr(ctx,"buyer_paid", amount=display_amount,
@@ -1922,7 +1805,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 text=tr_raw(sl,"seller_notif",
                             gift=deal["gift"], amount=display_amount,
                             cur=CURRENCIES.get(deal["currency"],deal["currency"]),
-                            buyer=deal["buyer_name"], id=did[:8]),
+                            buyer=deal["buyer_name"], id=did[:6]),
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton(tr_raw(sl,"btn_nft_sent"), callback_data=f"nftsent_{did}")
                 ]]),
@@ -1940,7 +1823,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     await context.bot.send_message(
                         chat_id=d2["seller_id"],
                         text=tr_raw(s_lang,"seller_reminder",
-                                    id=did[:8], gift=d2["gift"],
+                                    id=did[:6], gift=d2["gift"],
                                     amount=display_amount,
                                     cur=CURRENCIES.get(d2["currency"],d2["currency"])),
                         reply_markup=InlineKeyboardMarkup([[
@@ -1967,7 +1850,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     await context.bot.send_message(
                         chat_id=b_id,
                         text=tr_raw(b_lang, "buyer_timer_alert",
-                                    id=did[:8], gift=d2["gift"],
+                                    id=did[:6], gift=d2["gift"],
                                     amount=display_amount,
                                     cur=CURRENCIES.get(d2["currency"], d2["currency"])),
                         reply_markup=InlineKeyboardMarkup([[
@@ -1992,15 +1875,16 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await q.edit_message_text(tr(ctx,"deal_not_found"), parse_mode="Markdown")
             return MENU_ST
         platform_stats["disputes"] += 1
+        save_data()
         await q.edit_message_text(
-            tr(ctx,"dispute_opened", id=did[:8]),
+            tr(ctx,"dispute_opened", id=did[:6]),
             reply_markup=back_kb(ctx,"menu"), parse_mode="Markdown"
         )
         sl = get_user(deal["seller_id"]).get("lang","ru")
         try:
             await ctx.bot.send_message(
                 chat_id=deal["seller_id"],
-                text=tr_raw(sl,"dispute_notif", id=did[:8],
+                text=tr_raw(sl,"dispute_notif", id=did[:6],
                             buyer=update.effective_user.full_name or "Buyer",
                             amount=deal["amount"],
                             cur=CURRENCIES.get(deal["currency"],deal["currency"])),
@@ -2022,7 +1906,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 try:
                     await ctx.bot.send_message(
                         chat_id=deal["seller_id"],
-                        text=tr_raw(sl,"buyer_left", id=did[:8],
+                        text=tr_raw(sl,"buyer_left", id=did[:6],
                                     gift=deal["gift"], amount=deal["amount"],
                                     cur=CURRENCIES.get(deal["currency"],deal["currency"])),
                         parse_mode="Markdown"
@@ -2057,7 +1941,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             return MENU_ST
 
         deal["status"] = "nft_sent"
-
+        save_data()
         fee_mode       = deal.get("fee_mode","seller")
         display_amount = deal["amount"]
         if fee_mode == "buyer":
@@ -2106,6 +1990,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             seller_u.setdefault("balance", {})[adm_cur] = round(
                 seller_u["balance"].get(adm_cur, 0) + adm_credit, 8
             )
+            save_data()
             sl_done = get_user(uid).get("lang","ru")
             try:
                 await ctx.bot.send_message(
@@ -2153,8 +2038,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         seller_u.setdefault("balance", {})[cur] = round(
             seller_u["balance"].get(cur, 0) + seller_credit, 8
         )
-
-        # Buyer: done + review
+        save_data()
         await q.edit_message_text(
             tr(ctx,"deal_done_buyer"),
             reply_markup=InlineKeyboardMarkup([[
@@ -2236,6 +2120,7 @@ async def msg_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 )
             except Exception:
                 pass
+            save_data()
             await update.message.reply_text(
                 tr(ctx, "deposit_pending", amount=amount,
                    cur=CURRENCIES.get(cur, cur), req_id=req_id),
@@ -2270,6 +2155,7 @@ async def msg_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             req_val = u.get("req", {}).get(cur, "—")
             # Deduct balance
             u.setdefault("balance", {})[cur] = round(available - amount, 8)
+            save_data()
             ctx.user_data.pop("await",   None)
             ctx.user_data.pop("wdr_cur", None)
             # Notify support
@@ -2305,6 +2191,7 @@ async def msg_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             u["req"][cur] = text
             ctx.user_data.pop("await", None)
             ctx.user_data.pop("rq_cur", None)
+            save_data()
             await update.message.reply_text(
                 tr(ctx,"req_saved", cur=CURRENCIES.get(cur,cur)),
                 reply_markup=menu_kb(ctx), parse_mode="Markdown"
@@ -2353,7 +2240,7 @@ async def msg_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             )
             return MENU_ST
         fee_mode = ctx.user_data.get("dfee_mode","seller")
-        did      = str(uuid.uuid4()).replace("-","")[:12].upper()
+        did      = str(uuid.uuid4()).replace("-","")[:6].upper()
         bot_info = await ctx.bot.get_me()
         deals[did] = {
             "seller_id":   uid,
@@ -2369,6 +2256,7 @@ async def msg_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         }
         u["deals"].append(did)
         platform_stats["total_deals"] += 1
+        save_data()
         ctx.user_data.pop("await",     None)
         ctx.user_data.pop("dcur",      None)
         ctx.user_data.pop("damount",   None)
@@ -2393,7 +2281,7 @@ async def msg_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         else:
             rows = "".join(
                 tr(ctx,"deal_row", icon=status_icon(dl["status"]),
-                   id=did[:8], gift=dl["gift"], amount=dl["amount"], cur=dl["currency"])
+                   id=did[:6], gift=dl["gift"], amount=dl["amount"], cur=dl["currency"])
                 for did,dl in found[:10]
             )
             await update.message.reply_text(
@@ -2467,7 +2355,35 @@ async def banner_photo_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ════════════════════════════════════════════════════
 
 def main():
+    load_data()  # ← загружаем данные при старте
+
     app = Application.builder().token(BOT_TOKEN).build()
+
+    # ── Авто-снятие блокировки зависших сделок ────────────────────
+    async def unlock_stale_deals_job(context):
+        """Каждые 5 минут проверяет сделки с lock_time и снимает блокировку."""
+        now = datetime.now()
+        count = 0
+        for did, deal in list(deals.items()):
+            if deal.get("status") != "active":
+                continue
+            lock_time_str = deal.get("lock_time")
+            if not lock_time_str:
+                continue
+            try:
+                lock_time = datetime.strptime(lock_time_str, "%d.%m.%Y %H:%M")
+                if now - lock_time > timedelta(minutes=LOCK_TIMEOUT_MINUTES):
+                    deal.pop("locked_by", None)
+                    deal.pop("lock_time", None)
+                    deal.pop("confirming_by", None)
+                    count += 1
+            except Exception:
+                pass
+        if count:
+            save_data()
+            logger.info(f"🔓 Авто-разблокировано {count} сделок.")
+
+    app.job_queue.run_repeating(unlock_stale_deals_job, interval=300, first=60)
 
     all_cb  = [CallbackQueryHandler(main_cb)]
     all_msg = [MessageHandler(filters.TEXT & ~filters.COMMAND, msg_handler)]
@@ -2509,7 +2425,7 @@ def main():
         await application.bot.set_my_commands([])
 
     app.post_init = post_init
-    print("✅ Fides Deal Market Bot v4.0 running...")
+    print("✅ OTC Market Bot v4.1 running...")
     app.run_polling(drop_pending_updates=True)
 
 
