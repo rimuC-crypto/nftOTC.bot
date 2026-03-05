@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OTC NFT Market</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #05030f;
+    --bg2: #0a0618;
+    --purple: #7c3aed;
+    --purple2: #a855f7;
+    --purple3: #c084fc;
+    --pink: #e879f9;
+    --glow: rgba(124,58,237,0.45);
+    --glow2: rgba(168,85,247,0.25);
+    --text: #f0e9ff;
+    --muted: #8b7aac;
+    --card: rgba(255,255,255,0.03);
+    --border: rgba(168,85,247,0.18);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 999; opacity: 0.4;
+  }
+
+  /* ── AMBIENT BLOBS ── */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob-1 {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%);
+    top: -200px; left: -150px;
+    animation: float1 12s ease-in-out infinite;
+  }
+  .blob-2 {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(232,121,249,0.2) 0%, transparent 70%);
+    bottom: -100px; right: -100px;
+    animation: float2 15s ease-in-out infinite;
+  }
+  .blob-3 {
+    width: 350px; height: 350px;
+    background: radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: float3 10s ease-in-out infinite;
+  }
+
+  @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,80px)} }
+  @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-80px,-60px)} }
+  @keyframes float3 { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.3)} }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(168,85,247,0.1);
+    background: rgba(5,3,15,0.7);
+    backdrop-filter: blur(24px);
+  }
+  .nav-logo {
+    font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--purple2), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .nav-logo span { color: var(--muted); -webkit-text-fill-color: var(--muted); font-weight: 400; font-family: 'Space Mono', monospace; font-size: 0.7rem; margin-left: 6px; vertical-align: middle; }
+  .nav-links { display: flex; gap: 36px; }
+  .nav-links a {
+    color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--purple3); }
+  .nav-cta {
+    padding: 10px 24px;
+    border: 1px solid var(--purple);
+    border-radius: 8px;
+    color: var(--purple3); font-size: 0.85rem; font-weight: 700;
+    text-decoration: none;
+    background: rgba(124,58,237,0.1);
+    transition: all 0.25s;
+    letter-spacing: 0.03em;
+  }
+  .nav-cta:hover {
+    background: rgba(124,58,237,0.25);
+    box-shadow: 0 0 20px var(--glow);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 16px;
+    border: 1px solid rgba(168,85,247,0.35);
+    border-radius: 100px;
+    background: rgba(124,58,237,0.1);
+    font-size: 0.75rem; font-weight: 600;
+    color: var(--purple3); letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 32px;
+    animation: fadeInDown 0.8s ease both;
+  }
+  .hero-badge::before {
+    content: ''; width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--pink);
+    box-shadow: 0 0 8px var(--pink);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.8)} }
+
+  .hero-title {
+    font-size: clamp(3rem, 8vw, 7rem);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+    animation: fadeInDown 0.8s 0.1s ease both;
+  }
+  .hero-title .line1 {
+    display: block;
+    background: linear-gradient(135deg, #fff 0%, var(--purple3) 60%, var(--pink) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-title .line2 {
+    display: block;
+    background: linear-gradient(135deg, var(--purple2) 0%, var(--pink) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6em;
+    letter-spacing: 0.1em;
+    margin-top: 8px;
+  }
+
+  .hero-sub {
+    max-width: 600px;
+    font-size: 1.1rem; color: var(--muted); line-height: 1.7;
+    margin: 28px auto 48px;
+    animation: fadeInDown 0.8s 0.2s ease both;
+  }
+
+  .hero-btns {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+    animation: fadeInDown 0.8s 0.3s ease both;
+  }
+  .btn-primary {
+    padding: 16px 40px;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    border: none; border-radius: 12px;
+    color: #fff; font-family: 'Syne', sans-serif;
+    font-size: 1rem; font-weight: 700; letter-spacing: 0.02em;
+    cursor: pointer; text-decoration: none;
+    box-shadow: 0 0 40px rgba(124,58,237,0.5), 0 4px 20px rgba(0,0,0,0.4);
+    transition: all 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .btn-primary::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(168,85,247,0.6), 0 8px 30px rgba(0,0,0,0.4); }
+  .btn-primary:hover::after { opacity: 1; }
+
+  .btn-secondary {
+    padding: 16px 40px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text); background: var(--card);
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    backdrop-filter: blur(12px);
+    transition: all 0.3s;
+  }
+  .btn-secondary:hover { border-color: var(--purple2); background: rgba(124,58,237,0.12); transform: translateY(-2px); }
+
+  /* ── NFT ICONS GRID ── */
+  .nft-grid {
+    position: relative; z-index: 1;
+    margin-top: 80px;
+    animation: fadeInDown 0.8s 0.4s ease both;
+  }
+  .nft-grid-inner {
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    max-width: 600px; margin: 0 auto;
+  }
+  .nft-icon {
+    width: 80px; height: 80px; border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem;
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01));
+    backdrop-filter: blur(10px);
+    transition: all 0.3s;
+    cursor: default;
+    position: relative;
+    animation: iconFloat var(--dur, 4s) var(--delay, 0s) ease-in-out infinite;
+  }
+  .nft-icon:hover {
+    transform: translateY(-8px) scale(1.1);
+    border-color: var(--purple2);
+    box-shadow: 0 0 30px var(--glow), 0 20px 40px rgba(0,0,0,0.4);
+  }
+  @keyframes iconFloat {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  /* ── STATS ── */
+  .stats {
+    position: relative; z-index: 1;
+    padding: 60px 48px;
+    display: flex; justify-content: center; gap: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat {
+    text-align: center; padding: 0 60px;
+    border-right: 1px solid var(--border);
+  }
+  .stat:last-child { border-right: none; }
+  .stat-num {
+    font-size: 2.8rem; font-weight: 800;
+    background: linear-gradient(135deg, var(--purple2), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-family: 'Space Mono', monospace;
+    line-height: 1;
+  }
+  .stat-label { color: var(--muted); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 6px; }
+
+  /* ── FEATURES ── */
+  .section {
+    position: relative; z-index: 1;
+    padding: 100px 48px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .section-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem; color: var(--purple3);
+    letter-spacing: 0.2em; text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 800; letter-spacing: -0.02em;
+    line-height: 1.1; margin-bottom: 60px;
+  }
+  .section-title .accent {
+    background: linear-gradient(135deg, var(--purple2), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .feature-card {
+    padding: 32px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+    backdrop-filter: blur(12px);
+    transition: all 0.35s;
+    position: relative; overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(124,58,237,0.08) 0%, transparent 60%);
+    opacity: 0; transition: opacity 0.35s;
+  }
+  .feature-card:hover { border-color: rgba(168,85,247,0.4); transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 40px rgba(124,58,237,0.15); }
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    font-size: 2.2rem; margin-bottom: 20px;
+    display: block;
+    filter: drop-shadow(0 0 12px rgba(168,85,247,0.6));
+  }
+  .feature-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+  .feature-desc { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+
+  /* ── HOW IT WORKS ── */
+  .how-section {
+    position: relative; z-index: 1;
+    padding: 100px 48px;
+    background: linear-gradient(180deg, transparent, rgba(124,58,237,0.05), transparent);
+  }
+  .how-inner { max-width: 1000px; margin: 0 auto; }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0;
+    position: relative;
+    margin-top: 60px;
+  }
+  .steps::before {
+    content: '';
+    position: absolute; top: 32px; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--purple), var(--pink), var(--purple), transparent);
+    z-index: 0;
+  }
+  .step {
+    text-align: center; padding: 0 20px;
+    position: relative; z-index: 1;
+  }
+  .step-num {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem; font-weight: 700;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 30px var(--glow), 0 0 60px rgba(124,58,237,0.2);
+  }
+  .step-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+  .step-desc { color: var(--muted); font-size: 0.82rem; line-height: 1.5; }
+
+  /* ── ESCROW SECTION ── */
+  .escrow-section {
+    position: relative; z-index: 1;
+    padding: 100px 48px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .escrow-inner {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+  }
+  .escrow-visual {
+    position: relative;
+    height: 400px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .escrow-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid;
+    animation: spin var(--speed, 20s) linear infinite var(--dir, normal);
+  }
+  .ring-1 { width: 300px; height: 300px; border-color: rgba(168,85,247,0.2); }
+  .ring-2 { width: 220px; height: 220px; border-color: rgba(232,121,249,0.25); --speed: 14s; --dir: reverse; }
+  .ring-3 { width: 140px; height: 140px; border-color: rgba(124,58,237,0.35); --speed: 8s; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .escrow-center {
+    position: relative; z-index: 1;
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem;
+    box-shadow: 0 0 60px rgba(124,58,237,0.7);
+  }
+  .escrow-dot {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--purple3);
+    box-shadow: 0 0 10px var(--purple2);
+  }
+  .escrow-dot:nth-child(1) { top: 0; left: 50%; transform: translateX(-50%); }
+  .ring-1 .escrow-dot { animation: orbit-dot 20s linear infinite; }
+
+  .escrow-text .section-title { margin-bottom: 24px; font-size: clamp(1.8rem, 3vw, 2.8rem); }
+  .escrow-list { list-style: none; display: flex; flex-direction: column; gap: 16px; margin-top: 32px; }
+  .escrow-list li {
+    display: flex; gap: 14px; align-items: flex-start;
+    color: var(--muted); font-size: 0.9rem; line-height: 1.6;
+  }
+  .escrow-list li::before {
+    content: attr(data-icon);
+    font-size: 1.2rem; flex-shrink: 0; margin-top: -2px;
+  }
+  .escrow-list li strong { color: var(--text); }
+
+  /* ── CURRENCIES ── */
+  .currencies-section {
+    position: relative; z-index: 1;
+    padding: 80px 48px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(124,58,237,0.03);
+  }
+  .currencies-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem; color: var(--muted);
+    letter-spacing: 0.2em; text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+  .currencies-list {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
+  }
+  .currency-chip {
+    padding: 10px 24px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem; font-weight: 700;
+    color: var(--text);
+    background: rgba(255,255,255,0.03);
+    transition: all 0.25s;
+  }
+  .currency-chip:hover {
+    border-color: var(--purple2);
+    background: rgba(124,58,237,0.15);
+    color: var(--purple3);
+    box-shadow: 0 0 20px var(--glow2);
+    transform: translateY(-2px);
+  }
+
+  /* ── CTA BANNER ── */
+  .cta-section {
+    position: relative; z-index: 1;
+    padding: 120px 48px;
+    text-align: center;
+  }
+  .cta-box {
+    max-width: 700px; margin: 0 auto;
+    padding: 72px;
+    border: 1px solid rgba(168,85,247,0.25);
+    border-radius: 32px;
+    background: linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(232,121,249,0.05) 100%);
+    backdrop-filter: blur(20px);
+    position: relative; overflow: hidden;
+  }
+  .cta-box::before {
+    content: '';
+    position: absolute; top: -1px; left: 20%; right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--purple2), var(--pink), var(--purple2), transparent);
+  }
+  .cta-title {
+    font-size: clamp(2rem, 4vw, 3rem); font-weight: 800;
+    letter-spacing: -0.02em; margin-bottom: 16px;
+  }
+  .cta-sub { color: var(--muted); font-size: 1rem; line-height: 1.7; margin-bottom: 40px; }
+  .cta-tg {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 18px 48px;
+    background: linear-gradient(135deg, var(--purple), #9333ea, var(--pink));
+    border: none; border-radius: 14px;
+    color: #fff; font-family: 'Syne', sans-serif;
+    font-size: 1.1rem; font-weight: 700;
+    cursor: pointer; text-decoration: none;
+    box-shadow: 0 0 50px rgba(124,58,237,0.5);
+    transition: all 0.3s;
+  }
+  .cta-tg:hover { transform: translateY(-3px); box-shadow: 0 0 80px rgba(168,85,247,0.6); }
+  .cta-tg svg { width: 22px; height: 22px; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    padding: 40px 48px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 20px;
+  }
+  .footer-logo {
+    font-weight: 800; font-size: 1.1rem;
+    background: linear-gradient(135deg, var(--purple2), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .footer-text { color: var(--muted); font-size: 0.8rem; }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { color: var(--muted); text-decoration: none; font-size: 0.8rem; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--purple3); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .nav-links { display: none; }
+    .stats { flex-direction: column; gap: 32px; padding: 48px 20px; }
+    .stat { border-right: none; border-bottom: 1px solid var(--border); padding: 0 0 32px; }
+    .stat:last-child { border-bottom: none; }
+    .section, .escrow-section { padding: 80px 20px; }
+    .escrow-inner { grid-template-columns: 1fr; }
+    .escrow-visual { height: 280px; }
+    .steps::before { display: none; }
+    .steps { gap: 40px; }
+    .cta-box { padding: 40px 24px; }
+    footer { padding: 32px 20px; flex-direction: column; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- BLOBS -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">OTC NFT Market <span>v3.0</span></div>
+  <div class="nav-links">
+    <a href="#features">Возможности</a>
+    <a href="#how">Как работает</a>
+    <a href="#security">Безопасность</a>
+  </div>
+  <a href="https://t.me/otcmrkt_bot" class="nav-cta">Открыть бота →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🟣 Защищённые сделки с NFT</div>
+
+  <h1 class="hero-title">
+    <span class="line1">OTC NFT Market</span>
+    <span class="line2">SECURE · FAST · TRUSTED</span>
+  </h1>
+
+  <p class="hero-sub">
+    Самая безопасная площадка для торговли NFT‑подарками в Telegram.<br/>
+    Эскроу‑защита, мгновенные уведомления и поддержка 24/7.
+  </p>
+
+  <div class="hero-btns">
+    <a href="https://t.me/otcmrkt_bot" class="btn-primary">🚀 Начать торговать</a>
+    <a href="#how" class="btn-secondary">Как это работает</a>
+  </div>
+
+  <div class="nft-grid">
+    <div class="nft-grid-inner">
+      <div class="nft-icon" style="--dur:4.2s;--delay:0s">💀</div>
+      <div class="nft-icon" style="--dur:3.8s;--delay:0.3s">🎩</div>
+      <div class="nft-icon" style="--dur:4.5s;--delay:0.6s">💎</div>
+      <div class="nft-icon" style="--dur:3.6s;--delay:0.1s">🐉</div>
+      <div class="nft-icon" style="--dur:4.8s;--delay:0.5s">🎭</div>
+      <div class="nft-icon" style="--dur:3.9s;--delay:0.8s">🔮</div>
+      <div class="nft-icon" style="--dur:4.1s;--delay:0.2s">🦊</div>
+      <div class="nft-icon" style="--dur:4.6s;--delay:0.7s">⚡️</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat reveal">
+    <div class="stat-num">12 400+</div>
+    <div class="stat-label">Сделок завершено</div>
+  </div>
+  <div class="stat reveal">
+    <div class="stat-num">6</div>
+    <div class="stat-label">Валют поддерживается</div>
+  </div>
+  <div class="stat reveal">
+    <div class="stat-num">24/7</div>
+    <div class="stat-label">Поддержка</div>
+  </div>
+  <div class="stat reveal">
+    <div class="stat-num">100%</div>
+    <div class="stat-label">Эскроу‑защита</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="section-tag">// возможности</div>
+  <h2 class="section-title">Всё что нужно для <span class="accent">безопасной сделки</span></h2>
+
+  <div class="features">
+    <div class="feature-card reveal">
+      <span class="feature-icon">🔐</span>
+      <div class="feature-title">Эскроу‑защита</div>
+      <div class="feature-desc">Средства покупателя блокируются до момента подтверждения получения NFT. Никто не теряет деньги.</div>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">⚡️</span>
+      <div class="feature-title">Мгновенные уведомления</div>
+      <div class="feature-desc">Каждый шаг сделки — оплата, передача NFT, подтверждение — сопровождается уведомлением в реальном времени.</div>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🛡️</span>
+      <div class="feature-title">Верификация участников</div>
+      <div class="feature-desc">Система проверки каждого продавца и покупателя перед совершением сделки.</div>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">⭐</span>
+      <div class="feature-title">Рейтинговая система</div>
+      <div class="feature-desc">Смотрите историю сделок и оценки каждого участника. Полная прозрачность репутации.</div>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">⚖️</span>
+      <div class="feature-title">Арбитраж споров</div>
+      <div class="feature-desc">Спорные ситуации решаются нашими модераторами в течение 30 минут. Всегда честно.</div>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🌍</span>
+      <div class="feature-title">6 валют</div>
+      <div class="feature-desc">UAH, RUB, KZT, CNY, USDT и Telegram Stars. Торгуйте в удобной для вас валюте.</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<div class="how-section" id="how">
+  <div class="how-inner">
+    <div class="section-tag" style="text-align:center">// процесс</div>
+    <h2 class="section-title" style="text-align:center;margin:0 auto 0">Как проходит <span class="accent">сделка</span></h2>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <div class="step-title">Создание</div>
+        <div class="step-desc">Продавец создаёт сделку и получает ссылку для покупателя</div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <div class="step-title">Оплата</div>
+        <div class="step-desc">Покупатель переходит по ссылке и оплачивает через эскроу</div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">03</div>
+        <div class="step-title">Передача NFT</div>
+        <div class="step-desc">Продавец передаёт NFT подарок и нажимает «Передал»</div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">04</div>
+        <div class="step-title">Подтверждение</div>
+        <div class="step-desc">Покупатель подтверждает получение — сделка завершена ✅</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ESCROW / SECURITY -->
+<section class="escrow-section" id="security">
+  <div class="escrow-inner">
+    <div class="escrow-visual reveal">
+      <div class="escrow-ring ring-1"></div>
+      <div class="escrow-ring ring-2"></div>
+      <div class="escrow-ring ring-3"></div>
+      <div class="escrow-center">🔐</div>
+    </div>
+    <div class="escrow-text reveal">
+      <div class="section-tag">// безопасность</div>
+      <h2 class="section-title">Ваши деньги <span class="accent">под защитой</span></h2>
+      <ul class="escrow-list">
+        <li data-icon="🔐"><div><strong>Эскроу-хранилище</strong> — средства блокируются в момент подтверждения оплаты и освобождаются только после получения NFT покупателем</div></li>
+        <li data-icon="👁"><div><strong>Полная прозрачность</strong> — каждый статус сделки виден обеим сторонам в реальном времени</div></li>
+        <li data-icon="⚖️"><div><strong>Арбитраж</strong> — при возникновении спора модераторы разберутся в течение 30 минут</div></li>
+        <li data-icon="🛡️"><div><strong>Нулевой риск</strong> — ни один продавец не получит деньги без подтверждения передачи NFT</div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CURRENCIES -->
+<div class="currencies-section reveal">
+  <div class="currencies-label">поддерживаемые валюты</div>
+  <div class="currencies-list">
+    <div class="currency-chip">🇺🇦 UAH</div>
+    <div class="currency-chip">🇷🇺 RUB</div>
+    <div class="currency-chip">🇰🇿 KZT</div>
+    <div class="currency-chip">🇨🇳 CNY</div>
+    <div class="currency-chip">💵 USDT</div>
+    <div class="currency-chip">⭐ Telegram Stars</div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-box reveal">
+    <h2 class="cta-title">Готовы начать<br/><span style="background:linear-gradient(135deg,var(--purple2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent">безопасную торговлю?</span></h2>
+    <p class="cta-sub">Тысячи продавцов и покупателей уже доверяют OTC NFT Market.<br/>Присоединяйтесь — это бесплатно.</p>
+    <a href="https://t.me/otcmrkt_bot" class="cta-tg">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/></svg>
+      Открыть в Telegram
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">OTC NFT Market</div>
+  <div class="footer-text">© 2025 OTC NFT Market. Все сделки защищены эскроу.</div>
+  <div class="footer-links">
+    <a href="#">Поддержка</a>
+    <a href="#">Правила</a>
+    <a href="#">Telegram</a>
+  </div>
+</footer>
+
+<script>
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 80);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => io.observe(el));
+
+  // NFT icon hover glow color
+  const icons = document.querySelectorAll('.nft-icon');
+  const colors = ['#7c3aed','#a855f7','#e879f9','#c084fc','#818cf8'];
+  icons.forEach(icon => {
+    const c = colors[Math.floor(Math.random()*colors.length)];
+    icon.style.setProperty('--hover-color', c);
+    icon.addEventListener('mouseenter', () => {
+      icon.style.boxShadow = `0 0 30px ${c}80, 0 20px 40px rgba(0,0,0,0.4)`;
+    });
+    icon.addEventListener('mouseleave', () => {
+      icon.style.boxShadow = '';
+    });
+  });
+
+  // Smooth nav links
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
+    });
+  });
+</script>
+</body>
+</html>
