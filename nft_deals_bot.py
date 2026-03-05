@@ -110,14 +110,13 @@ T = {}
 
 T["ru"] = {
     "welcome": (
-        "Добро пожаловать в Bloosy Market\n\n"
+        "🏠 *OTC Market*\n\n"
         "Безопасные сделки с гарантией\n\n"
         "🛡️ Защита от мошенников\n"
         "💰 Автоматическое удержание средств\n"
         "📝 Прозрачная статистика\n"
         "🎯 Поддержка 24/7\n"
-        "📊 История сделок\n\n"
-        "👇 Выберите язык интерфейса:"
+        "📊 История сделок"
     ),
     "blocked": "⛔ *Аккаунт заблокирован*\n\nОбратитесь в поддержку: @{support}",
     "menu": (
@@ -282,9 +281,7 @@ T["ru"] = {
         "Вас пригласили к защищённой сделке.\n\n"
         "🔐 Все транзакции защищены\n"
         "системой эскроу — ваши средства\n"
-        "в полной безопасности.\n"
-        
-        "👇 Выберите язык:"
+        "в полной безопасности."
     ),
     "buyer_viewing": (
         "👁 *Покупатель просматривает вашу сделку*\n\n"
@@ -493,14 +490,13 @@ T["ru"] = {
 # ── Ukrainian ────────────────────────────────────────
 T["uk"] = {
     "welcome": (
-        "Ласкаво просимо до Bloosy Market\n\n"
+        "🏠 *OTC Market*\n\n"
         "Безпечні угоди з гарантією\n\n"
         "🛡️ Захист від шахраїв\n"
         "💰 Автоматичне утримання коштів\n"
         "📝 Прозора статистика\n"
         "🎯 Підтримка 24/7\n"
-        "📊 Історія угод\n\n"
-        "👇 Оберіть мову:"
+        "📊 Історія угод"
     ),
     "blocked": "⛔ *Акаунт заблоковано*\n\nЗверніться до підтримки: @{support}",
     "menu": "🏠 *OTC Market*\n\n👤 *{name}*\n⭐ Рейтинг: *{rating}* / 5.0  |  📊 Угод: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\nОберіть дію:",
@@ -528,7 +524,7 @@ T["uk"] = {
     "lang_pick": "🌐 *Оберіть мову:*", "back": "⬅️ Назад",
     "s_active": "🟡 Очікує", "s_paid": "🟠 Оплачено", "s_nft_sent": "📦 NFT відправлено",
     "s_done": "✅ Завершено", "s_cancelled": "❌ Скасовано",
-    "buyer_welcome": "👋 *Ласкаво просимо!*\n\nВас запросили до захищеної угоди.\n\n🔐 Ескроу‑захист.\n\n👇 Оберіть мову:",
+    "buyer_welcome": "👋 *Ласкаво просимо!*\n\nВас запросили до захищеної угоди.\n\n🔐 Ескроу‑захист.",
     "buyer_viewing": "👁 *Покупець переглядає угоду*\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n⏳ Очікуйте...",
     "buyer_deal": "🤝 *Пропозиція угоди*\n\n━━━━━━━━━━━━━━━━━━━━━━\n🎁 *{gift}*\n💰 {amount} {cur}\n👤 Продавець: *{seller}*\n⭐ Рейтинг: *{rating}*\n📊 Угод: *{dc}*\n🆔 `{id}`\n━━━━━━━━━━━━━━━━━━━━━━\n\n🔐 Кошти захищені ескроу до передачі NFT.",
     "btn_pay": "💳 До оплати", "btn_cancel_deal": "❌ Скасувати", "btn_dispute": "⚖️ Відкрити спір",
@@ -590,14 +586,13 @@ T["uk"] = {
 # ── English ──────────────────────────────────────────
 T["en"] = {
     "welcome": (
-        "Welcome to Bloosy Market\n\n"
+        "🏠 *OTC Market*\n\n"
         "Secure deals with guarantee\n\n"
         "🛡️ Fraud protection\n"
         "💰 Automatic fund holding\n"
         "📝 Transparent statistics\n"
         "🎯 Support 24/7\n"
-        "📊 Deal history\n\n"
-        "👇 Choose your language:"
+        "📊 Deal history"
     ),
     "blocked": "⛔ *Account blocked*\n\nContact support: @{support}",
     "menu": "🏠 *OTC Market*\n\n👤 *{name}*\n⭐ Rating: *{rating}* / 5.0  |  📊 Deals: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\nChoose an action:",
@@ -625,7 +620,7 @@ T["en"] = {
     "lang_pick": "🌐 *Choose language:*", "back": "⬅️ Back",
     "s_active": "🟡 Pending", "s_paid": "🟠 Paid", "s_nft_sent": "📦 NFT Sent",
     "s_done": "✅ Done", "s_cancelled": "❌ Cancelled",
-    "buyer_welcome": "👋 *Welcome to OTC Market!*\n\nYou've been invited to a secured deal.\n\n🔐 Escrow protection.\n\n👇 Choose language:",
+    "buyer_welcome": "👋 *Welcome to OTC Market!*\n\nYou've been invited to a secured deal.\n\n🔐 Escrow protection.",
     "buyer_viewing": "👁 *Buyer is viewing your deal*\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n⏳ Awaiting payment...",
     "buyer_deal": "🤝 *Deal Offer*\n\n━━━━━━━━━━━━━━━━━━━━━━\n🎁 *{gift}*\n💰 {amount} {cur}\n👤 Seller: *{seller}*\n⭐ Rating: *{rating}*\n📊 Deals: *{dc}*\n🆔 `{id}`\n━━━━━━━━━━━━━━━━━━━━━━\n\n🔐 Funds held in escrow until NFT transferred.",
     "btn_pay": "💳 Proceed to Payment", "btn_cancel_deal": "❌ Cancel", "btn_dispute": "⚖️ Open Dispute",
@@ -741,7 +736,7 @@ T["ar"] = {
     "lang_pick": "🌐 *اختر اللغة:*", "back": "⬅️ رجوع",
     "s_active": "🟡 انتظار", "s_paid": "🟠 مدفوع", "s_nft_sent": "📦 NFT أُرسل",
     "s_done": "✅ مكتمل", "s_cancelled": "❌ ملغى",
-    "buyer_welcome": "👋 *مرحباً بك في OTC Market!*\n\nتمت دعوتك للمشاركة في صفقة محمية.\n\n🔐 حماية الضمان.\n\n👇 اختر اللغة:",
+    "buyer_welcome": "👋 *مرحباً بك في OTC Market!*\n\nتمت دعوتك للمشاركة في صفقة محمية.\n\n🔐 حماية الضمان.",
     "buyer_viewing": "👁 *المشتري يشاهد صفقتك*\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n⏳ انتظر الدفع...",
     "buyer_deal": "🤝 *عرض صفقة*\n\n━━━━━━━━━━━━━━━━━━━━━━\n🎁 *{gift}*\n💰 {amount} {cur}\n👤 البائع: *{seller}*\n⭐ التقييم: *{rating}*\n📊 الصفقات: *{dc}*\n🆔 `{id}`\n━━━━━━━━━━━━━━━━━━━━━━\n\n🔐 الأموال محمية حتى نقل NFT.",
     "btn_pay": "💳 الدفع", "btn_cancel_deal": "❌ إلغاء", "btn_dispute": "⚖️ فتح نزاع",
@@ -796,7 +791,7 @@ T["ar"] = {
 
 # ── Chinese ──────────────────────────────────────────
 T["zh"] = {
-    "welcome": "💎 *OTC Market*\n\n欢迎使用最安全的NFT礼品交易平台！\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 每笔交易的托管保护\n⚡️ 实时通知\n🛡️ 用户验证\n🌍 6种货币\n💬 24/7支持\n⚖️ 争议仲裁\n━━━━━━━━━━━━━━━━━━━━━━\n\n👇 选择语言:",
+    "welcome": "💎 *OTC Market*\n\n欢迎使用最安全的NFT礼品交易平台！\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 每笔交易的托管保护\n⚡️ 实时通知\n🛡️ 用户验证\n🌍 6种货币\n💬 24/7支持\n⚖️ 争议仲裁\n━━━━━━━━━━━━━━━━━━━━━━",
     "blocked": "⛔ *账号已封禁*\n\n联系客服: @{support}",
     "menu": "🏠 *OTC Market*\n\n👤 *{name}*\n⭐ 评分: *{rating}* / 5.0  |  📊 交易: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\n选择操作:",
     "btn_create": "➕ 创建交易", "btn_deals": "📂 我的交易", "btn_refs": "👥 推荐",
@@ -823,7 +818,7 @@ T["zh"] = {
     "lang_pick": "🌐 *选择语言:*", "back": "⬅️ 返回",
     "s_active": "🟡 等待中", "s_paid": "🟠 已付款", "s_nft_sent": "📦 NFT已发送",
     "s_done": "✅ 已完成", "s_cancelled": "❌ 已取消",
-    "buyer_welcome": "👋 *欢迎来到OTC Market!*\n\n您已被邀请参与一笔受保护的交易。\n\n🔐 托管保护。\n\n👇 选择语言:",
+    "buyer_welcome": "👋 *欢迎来到OTC Market!*\n\n您已被邀请参与一笔受保护的交易。\n\n🔐 托管保护.",
     "buyer_viewing": "👁 *买家正在查看您的交易*\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n⏳ 等待付款...",
     "buyer_deal": "🤝 *交易邀请*\n\n━━━━━━━━━━━━━━━━━━━━━━\n🎁 *{gift}*\n💰 {amount} {cur}\n👤 卖家: *{seller}*\n⭐ 评分: *{rating}*\n📊 交易数: *{dc}*\n🆔 `{id}`\n━━━━━━━━━━━━━━━━━━━━━━\n\n🔐 资金托管直到NFT转让。",
     "btn_pay": "💳 去付款", "btn_cancel_deal": "❌ 取消", "btn_dispute": "⚖️ 开启争议",
@@ -878,7 +873,7 @@ T["zh"] = {
 
 # ── Japanese ─────────────────────────────────────────
 T["ja"] = {
-    "welcome": "💎 *OTC Market*\n\n最も安全なNFTギフト取引プラットフォームへようこそ！\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 全取引のエスクロー保護\n⚡️ リアルタイム通知\n🛡️ ユーザー認証\n🌍 6通貨対応\n💬 24時間サポート\n⚖️ 紛争仲裁\n━━━━━━━━━━━━━━━━━━━━━━\n\n👇 言語を選択:",
+    "welcome": "💎 *OTC Market*\n\n最も安全なNFTギフト取引プラットフォームへようこそ！\n\n━━━━━━━━━━━━━━━━━━━━━━\n🔐 全取引のエスクロー保護\n⚡️ リアルタイム通知\n🛡️ ユーザー認証\n🌍 6通貨対応\n💬 24時間サポート\n⚖️ 紛争仲裁\n━━━━━━━━━━━━━━━━━━━━━━",
     "blocked": "⛔ *アカウントが停止されました*\n\nサポートへ: @{support}",
     "menu": "🏠 *OTC Market*\n\n👤 *{name}*\n⭐ 評価: *{rating}* / 5.0  |  📊 取引: *{dc}*\n\n━━━━━━━━━━━━━━━━━━━━━━\n操作を選択:",
     "btn_create": "➕ 取引作成", "btn_deals": "📂 取引一覧", "btn_refs": "👥 紹介",
@@ -905,7 +900,7 @@ T["ja"] = {
     "lang_pick": "🌐 *言語を選択:*", "back": "⬅️ 戻る",
     "s_active": "🟡 待機中", "s_paid": "🟠 支払済", "s_nft_sent": "📦 NFT送信済",
     "s_done": "✅ 完了", "s_cancelled": "❌ キャンセル",
-    "buyer_welcome": "👋 *OTC Marketへようこそ!*\n\n保護された取引に招待されました。\n\n🔐 エスクロー保護。\n\n👇 言語を選択:",
+    "buyer_welcome": "👋 *OTC Marketへようこそ!*\n\n保護された取引に招待されました。\n\n🔐 エスクロー保護.",
     "buyer_viewing": "👁 *購入者があなたの取引を確認中*\n\n🆔 `{id}`\n🎁 {gift} | 💰 {amount} {cur}\n\n⏳ 支払待ち...",
     "buyer_deal": "🤝 *取引オファー*\n\n━━━━━━━━━━━━━━━━━━━━━━\n🎁 *{gift}*\n💰 {amount} {cur}\n👤 販売者: *{seller}*\n⭐ 評価: *{rating}*\n📊 取引数: *{dc}*\n🆔 `{id}`\n━━━━━━━━━━━━━━━━━━━━━━\n\n🔐 NFT転送まで資金はエスクロー保護。",
     "btn_pay": "💳 支払へ", "btn_cancel_deal": "❌ キャンセル", "btn_dispute": "⚖️ 紛争開始",
@@ -1333,6 +1328,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         code = d[5:]
         ctx.user_data["lang"] = code
         u["lang"] = code
+        save_data()
 
         if ctx.user_data.get("flow") == "buyer":
             did  = ctx.user_data.get("pending_deal")
@@ -1744,7 +1740,7 @@ async def main_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 await q.edit_message_text(tr(ctx,"lang_pick"), reply_markup=lang_kb(), parse_mode="Markdown")
             except Exception:
                 pass
-        return LANG_ST
+        return MENU_ST
 
     if d == "support":
         ctx.user_data["await"] = "support"
@@ -2537,7 +2533,7 @@ def main():
             CommandHandler("getbannerid", getbannerid_cmd),
         ],
         states={
-            LANG_ST:      all_cb,
+            LANG_ST:      all_cb + all_msg,
             MENU_ST:      all_cb + all_msg,
             REQ_CUR_ST:   all_cb,
             REQ_IN_ST:    all_msg + all_cb,
